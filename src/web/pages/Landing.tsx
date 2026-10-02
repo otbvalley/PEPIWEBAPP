@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { ArrowRight, Bell, Home, MapPin, Menu, MessageCircle, Search, ShoppingBag, ShoppingCart, Star, Store, UserRound, Utensils, X } from "lucide-react";
+import { ArrowRight, MapPin, Menu, Search, Star, Store, Utensils, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -16,32 +16,23 @@ type PublicKitchen = { id: string; business_name: string; business_category?: st
 type PublicMeal = { id: string; vendor_id: string; name: string; category?: string; price: number; image_url?: string; vendor?: { business_name?: string } };
 type PublicHome = { categories: string[]; top_items: PublicMeal[]; all_kitchens: PublicKitchen[] };
 
-function Phone({ tracking = false }: { tracking?: boolean }) {
-  return <div className={`land-phone ${tracking ? "tracking" : ""}`} aria-label={tracking ? "Pepi live order tracking" : "Pepi customer app home"}>
-    <div className="phone-status"><span>10:34</span><i /><span className="phone-signal"><b/><b/><b/> LTE <em>40</em></span></div>
-    {tracking ? <><div className="map"><span className="road one"/><span className="road two"/><svg viewBox="0 0 240 360" aria-hidden="true"><path d="M38 290 C70 215 105 270 125 185 S176 135 204 68"/></svg><b className="pin start"/><b className="pin end"/></div><div className="track-card"><span>KA</span><div><small>Your rider is on the way</small><strong>12 minutes away</strong></div></div></> : <div className="phone-screen">
-      <div className="phone-top"><span>AT</span><strong>Welcome, Andrew</strong><div><i><MessageCircle/><b>1</b></i><i><Bell/><b>8</b></i></div></div>
-      <div className="phone-search"><Search/><span>Search for available foods</span><b>Filter⌄</b></div>
-      <div className="phone-filters"><b>✓ All</b><span>Main</span></div>
-      <div className="phone-mini-promo"><img src="/cartoon-jollof-meal.png" alt=""/></div>
-      <div className="phone-food"><strong>Rice</strong><small><i/> Chicken Republic</small></div>
-      <div className="phone-heading"><strong>Special offers for you</strong><small>View more</small></div>
-      <div className="phone-offer"><div><small>Today’s pick</small><strong>Jollof, chicken<br/>and plantain</strong></div><img src="/cartoon-jollof-meal.png" alt=""/></div>
-      <strong className="phone-section-label">Featured Vendors</strong>
-      <div className="phone-heading kitchen-title"><strong>Kitchens near you</strong></div>
-      <div className="phone-kitchen-search"><Search/>Search kitchens</div>
-      <div className="phone-tabs"><b><Home/>Home</b><span><ShoppingBag/>Order</span><span><ShoppingCart/>Cart</span><span><UserRound/>Account</span></div>
-    </div>}
-  </div>;
-}
-
 function Dish({ tone = "rice" }: { tone?: string }) { return <span className={`dish dish-${tone}`} aria-hidden="true"/>; }
 
-function Browser() {
-  return <div className="land-browser" aria-label="Pepi desktop food marketplace">
-    <div className="browser-bar"><i/><i/><i/><span>pickeatpickit.com/customer/home</span></div>
-    <div className="browser-body"><aside><img src={logo} alt=""/><b>Home</b><span>Search</span><span>Orders</span><span>Wallet</span></aside><div className="browser-main"><small>Good afternoon</small><h3>What would you like to eat?</h3><div className="browser-search">Search kitchens and meals</div><div className="browser-meals"><Dish tone="rice"/><Dish tone="pasta"/><Dish tone="grill"/></div></div></div>
-  </div>;
+type MockupAsset = "app-devices" | "browse-phone" | "checkout-phone" | "tracking-phone" | "desktop-marketplace";
+const mockupDimensions: Record<MockupAsset, [number, number]> = {
+  "app-devices": [1247, 1261],
+  "browse-phone": [1024, 1536],
+  "checkout-phone": [1024, 1536],
+  "tracking-phone": [1024, 1536],
+  "desktop-marketplace": [1536, 1024],
+};
+
+function MockupPicture({ asset, alt, className = "", eager = false }: { asset: MockupAsset; alt: string; className?: string; eager?: boolean }) {
+  const [width, height] = mockupDimensions[asset];
+  return <picture className={`mockup-picture ${className}`}>
+    <source srcSet={`/mockups/pepi-${asset}.webp`} type="image/webp"/>
+    <img src={`/mockups/pepi-${asset}.png`} width={width} height={height} alt={alt} loading={eager ? "eager" : "lazy"} fetchPriority={eager ? "high" : "auto"}/>
+  </picture>;
 }
 
 export default function Landing() {
@@ -112,10 +103,7 @@ export default function Landing() {
           <button className="use-location" data-intro onClick={() => navigate("/signup?role=customer")}>Use my current location</button>
         </div>
         <div className="hero-scene">
-          <picture className="hero-mock" data-device>
-            <source srcSet="/mockups/pepi-app-devices.webp" type="image/webp"/>
-            <img src="/mockups/pepi-app-devices.png" width="1247" height="1261" alt="Pepi food ordering and live delivery tracking on two phones" fetchPriority="high"/>
-          </picture>
+          <MockupPicture asset="app-devices" className="hero-mock" alt="Pepi food ordering and live delivery tracking on two phones" eager/>
         </div>
       </section>
 
@@ -124,21 +112,21 @@ export default function Landing() {
       {(home?.categories?.length || 0) > 0 && <section className="land-section categories"><div className="section-heading" data-reveal><h2>Browse by appetite.</h2><p>Start with what sounds good. We will help with the rest.</p></div><div className="category-viewport"><div className="category-track">{home!.categories.slice(0, 10).map((name, index) => <Link to={`/signup?role=customer&category=${encodeURIComponent(name)}`} className={`category c${index % 6}`} key={name}><Dish tone={["sun","rice","pasta","grill","leaf","tomato"][index % 6]}/><strong>{name}</strong></Link>)}</div></div></section>}
 
       <section className="land-section journey"><div className="section-heading" data-reveal><h2>From craving to doorstep.</h2><p>Three clear moments. One order you can follow from start to finish.</p></div><div className="journey-grid">
-        <article data-reveal><b>01</b><div className="step-visual"><Phone/></div><h3>Choose what looks good</h3><p>Browse nearby kitchens and see every meal in context before you decide.</p></article>
-        <article data-reveal><b>02</b><div className="cart-mock"><Dish tone="rice"/><div><strong>Jollof bowl</strong><small>Extra plantain</small></div><b>₦5,400</b><button>Place order</button></div><h3>Make it yours</h3><p>Add the extras you want, confirm your address, and choose how to pay.</p></article>
-        <article data-reveal><b>03</b><div className="step-visual track"><Phone tracking/></div><h3>Watch it come to you</h3><p>See when the kitchen starts, when your rider collects it, and when to meet them.</p></article>
+        <article data-reveal><b>01</b><div className="step-visual"><MockupPicture asset="browse-phone" className="step-mock" alt="Pepi food browsing screen"/></div><h3>Choose what looks good</h3><p>Browse nearby kitchens and see every meal in context before you decide.</p></article>
+        <article data-reveal><b>02</b><div className="step-visual checkout"><MockupPicture asset="checkout-phone" className="step-mock" alt="Pepi cart and checkout screen"/></div><h3>Make it yours</h3><p>Add the extras you want, confirm your address, and choose how to pay.</p></article>
+        <article data-reveal><b>03</b><div className="step-visual track"><MockupPicture asset="tracking-phone" className="step-mock" alt="Pepi live delivery tracking screen"/></div><h3>Watch it come to you</h3><p>See when the kitchen starts, when your rider collects it, and when to meet them.</p></article>
       </div></section>
 
-      <section className="land-section product-world"><div data-reveal><h2>Pepi goes where your appetite goes.</h2><p>Order on your phone or desktop, then keep track from whichever screen is closest.</p><Link className="land-button primary" to="/signup?role=customer">Start an order <ArrowRight/></Link><StoreBadges role="customer"/></div><div className="world-stage"><Browser/><div className="world-phone"><Phone/></div><div className="world-note"><span>PAID</span><strong>Your order is being prepared</strong><small>We will tell you when it leaves the kitchen.</small></div></div></section>
+      <section className="land-section product-world"><div data-reveal><h2>Pepi goes where your appetite goes.</h2><p>Order on your phone or desktop, then keep track from whichever screen is closest.</p><Link className="land-button primary" to="/signup?role=customer">Start an order <ArrowRight/></Link><StoreBadges role="customer"/></div><div className="world-stage"><MockupPicture asset="desktop-marketplace" className="desktop-mock" alt="Pepi desktop food marketplace"/><div className="world-phone"><MockupPicture asset="browse-phone" alt="Pepi mobile food marketplace"/></div></div></section>
 
       <section className="land-section partner-section"><div className="section-heading" data-reveal><h2>Built for the whole delivery.</h2><p>Good service starts before an order is placed and continues until it arrives.</p></div><div className="partner-grid">
         <Link className="partner-card" to="/vendors" data-reveal><div className="partner-ui vendor-ui"><i/>New order<div><strong>2x Jollof bowl</strong><small>Pickup in 24 minutes</small></div></div><div><h3>Grow your kitchen with Pepi</h3><p>Manage your menu, orders, availability, and earnings in one clear workspace.</p><span>Explore Pepi for vendors <ArrowRight/></span></div></Link>
-        <Link className="partner-card" to="/riders" data-reveal><div className="partner-ui rider-ui"><div className="route"><i/><b/></div><small>Next pickup</small><strong>8 minutes away</strong></div><div><h3>Make every trip count</h3><p>Find available deliveries, follow the route, and keep your earnings in view.</p><span>Explore Pepi for riders <ArrowRight/></span></div></Link>
+        <Link className="partner-card" to="/riders" data-reveal><div className="partner-ui rider-ui-image"><MockupPicture asset="tracking-phone" className="rider-mock" alt="Pepi delivery route tracking"/></div><div><h3>Make every trip count</h3><p>Find available deliveries, follow the route, and keep your earnings in view.</p><span>Explore Pepi for riders <ArrowRight/></span></div></Link>
       </div></section>
 
       <section className="land-section trust" data-reveal><div><h2>You should never have to guess what happens next.</h2><p>Order updates, payment status, and support conversations stay connected to the same delivery.</p></div><div className="timeline"><div className="done"><i/><span><strong>Order confirmed</strong><small>2:14 PM</small></span></div><div className="done"><i/><span><strong>Kitchen is preparing your meal</strong><small>2:18 PM</small></span></div><div className="active"><i/><span><strong>Rider is heading to the kitchen</strong><small>Live update</small></span></div><div><i/><span><strong>Delivered to you</strong><small>Coming next</small></span></div></div></section>
 
-      <section className="final-cta" data-reveal><div><h2>What are you in the mood for?</h2><p>Tell us where you are and we will show you what is cooking nearby.</p><div><Link className="land-button dark" to="/signup?role=customer">Find food near me <ArrowRight/></Link><Link className="land-button light" to="/signup?role=customer">Create an account</Link></div><StoreBadges role="customer" compact/></div><div className="final-phone"><Phone/></div></section>
+      <section className="final-cta" data-reveal><div><h2>What are you in the mood for?</h2><p>Tell us where you are and we will show you what is cooking nearby.</p><div><Link className="land-button dark" to="/signup?role=customer">Find food near me <ArrowRight/></Link><Link className="land-button light" to="/signup?role=customer">Create an account</Link></div><StoreBadges role="customer" compact/></div><div className="final-phone"><MockupPicture asset="browse-phone" alt="Browse meals with Pepi"/></div></section>
     </main>
     <footer className="land-footer">
       <div className="footer-lead"><div><h2>Good food should feel close.</h2><p>Find your next meal, build your kitchen, or make deliveries with Pepi.</p></div><Link to="/signup?role=customer">Find food near you <ArrowRight/></Link></div>
