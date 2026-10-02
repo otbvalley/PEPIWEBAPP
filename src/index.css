@@ -476,3 +476,14 @@ body {
 .pepi-chat-compose { display: flex; gap: 10px; padding-top: 14px; }.pepi-chat-compose input { flex: 1; min-width: 0; border: 1px solid var(--pepi-line); border-radius: 12px; padding: 12px; }
 .pepi-panel input[type="checkbox"] { width: auto; margin-right: 8px; }
 @media (max-width: 767px) { .pepi-public-main { grid-template-columns: 1fr; }.pepi-public-illustration { min-height: 180px; }.pepi-chat-layout { grid-template-columns: 1fr; }.pepi-chat-messages { min-height: 250px; }.pepi-action-row { align-items: stretch; } }
+
+/* iOS Safari zooms focused form controls whose computed text size is below 16px. */
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 767px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
+}
