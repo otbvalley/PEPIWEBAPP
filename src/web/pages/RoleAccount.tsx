@@ -171,7 +171,7 @@ export function ProfilePage({ role, edit = false }: { role: Role; edit?: boolean
         <div className="pepi-profile-fields">{profileFields[role].filter(field => field.section === section).map(field => <label className={field.type === "textarea" ? "is-wide" : ""} key={field.key}>{field.label}
           {field.type === "textarea" ? <textarea value={textValue(form[field.key])} readOnly={field.readOnly} placeholder={field.placeholder} onChange={event => setForm(current => ({ ...current, [field.key]: event.target.value }))}/>
             : field.type === "select" ? <select value={textValue(form[field.key])} onChange={event => setForm(current => ({ ...current, [field.key]: event.target.value }))}><option value="">Select {field.label.toLowerCase()}</option>{field.options?.map(option => <option key={option} value={option.toLowerCase()}>{option}</option>)}</select>
-            : <input type={field.type || "text"} step={field.type === "number" ? "any" : undefined} value={textValue(form[field.key])} readOnly={field.readOnly} placeholder={field.placeholder} onChange={event => setForm(current => ({ ...current, [field.key]: event.target.value }))}/>
+            : <input type={field.type || "text"} step={field.type === "number" ? "any" : undefined} value={textValue(form[field.key])} readOnly={field.readOnly} placeholder={field.placeholder} onChange={event => setForm(current => ({ ...current, [field.key]: event.target.value }))}/>}
         </label>)}</div>
       </fieldset>)}
       {role === "customer" && <Link className="pepi-profile-address-link" to="/customer/addresses"><MapPin size={18}/><span><strong>Saved delivery addresses</strong><small>Add, edit, delete, or choose your default delivery address.</small></span><ChevronRight size={18}/></Link>}
