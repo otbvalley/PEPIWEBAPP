@@ -1,183 +1,121 @@
-import { Routes, Route } from "react-router-dom";
-import LandingPage from "./home/LandingPage";
-
-import Signup from "./user/signup/Signup";
-// import Login from "./auth/login/VendorLogin";
-import UserDashboard from "./user/user-dashboard/UserDashboard";
-
-import { Rider1 } from "./rider/Rider1";
-import { Rider2 } from "./rider/Rider2";
-import { Rider3 } from "./rider/Rider3";
-import { Rider4 } from "./rider/Rider4";
-import { Rider5 } from "./rider/Rider5";
-import { Rider6 } from "./rider/Rider6";
-// import Signup from "./auth/sigup/VendorSignup";
-import VendorSignup from "./auth/sigup/VendorSignup";
-import VendorLogin from "./auth/login/VendorLogin";
-import VendorDashboard from "./vendor/dashboard/VendorDashboard";
-import Login from "./user/login/Login";
-import SearchComponent from "./user/component/SearchComponent";
-import Home from "./user/home/Home";
-import MArket from "./user/market/MArket";
-import ChatApp from "./user/component/ChatApp";
-import Notification from "./user/component/Notification";
-import FoodCartApp from "./user/component/FoodCartApp";
-import PaymentComponent from "./user/component/PaymentComponent";
-import PaymentVerify from "./user/PaymentVerify";
-import Profile from "./user/Profile";
-import ProfileEditForm from "./user/ProfileEditForm";
-import Support from "./user/Support";
-import WalletComponent from "./user/component/WalletComponent";
-import Booking from "./user/Booking";
-import OrdersManagement from "./vendor/pages/OrdersManagement";
-import Account from "./vendor/pages/Account";
-import ProfileSetting from "./vendor/pages/ProfileSetting";
-import OrderHistory from "./vendor/pages/OrderHistory";
-import SupportPage from "./vendor/pages/SupportPage";
-import DevicesAndSessions from "./vendor/pages/DevicesAndSessions";
-import RestaurantMenu from "./vendor/pages/RestaurantMenu";
-import EarningsPayment from "./vendor/pages/EarningsPayment";
-import ReviewsPage from "./vendor/pages/ReviewsPage";
-import NotificationsPage from "./vendor/pages/NotificationsPage";
-import OnboardingScreen from "./ride/rideWelcome/OnboardingScreen";
-import RiderRegistration from "./ride/rideWelcome/RiderRegistration";
-import RiderLogin from "./ride/login/RiderLogin";
-import RiderDashboard from "./ride/riderDasboard/RiderDashboard";
-import RiderOrder from "./ride/pages/RiderOrder";
-import FoodDeliveryMap from "./ride/pages/FoodDeliveryMap";
-import ProfileScreen from "./ride/pages/ProfileScreen";
-import DeliveryNotifications from "./ride/pages/DeliveryNotifications";
-import RiderProfileSettings from "./ride/pages/RiderProfileSettings";
-import DailyRiderApp from "./ride/pages/DailyRiderApp";
-import RiderEarningsPayment from "./ride/pages/RiderEarningsPayment";
-import RiderDevice from "./ride/pages/RiderDevice";
-import RiderSupport from "./ride/pages/RiderSupport";
-import SettingsScreen from "./ride/pages/SettingsScreen";
-import AdminDashboard from "./admin/dashboard/AdminDashboard";
-import AdminLogin from "./admin/login/AdminLogin";
+import { lazy, Suspense } from "react";
+import { Navigate, Route, Routes } from "react-router-dom";
+import Landing from "./web/pages/Landing";
+import PartnerLanding from "./web/pages/PartnerLanding";
+import NotFound from "./web/pages/NotFound";
+import RoleLogin from "./web/auth/RoleLogin";
+import ProtectedWorkspace from "./web/auth/ProtectedWorkspace";
+import CompleteProfile from "./web/auth/CompleteProfile";
+import { Registration, PasswordReset } from "./web/auth/Registration";
+import { CustomerHome, CustomerSearch, CustomerKitchen, VendorDashboard, RiderDashboard } from "./web/pages/WorkspacePages";
+import { CustomerCart, CustomerCheckout, CustomerPaymentVerify } from "./web/customer/CartFlow";
+import CustomerAddresses from "./web/customer/Addresses";
+import CustomerOrders from "./web/customer/Orders";
+import { CustomerFaq, CustomerFavorites, CustomerOffers, CustomerOnboarding, CustomerOrderRoute, CustomerPassword, CustomerPreferences, CustomerWallet, WalletVerify } from "./web/customer/CustomerAccountPages";
+import EarningsPage from "./web/pages/EarningsPage";
+import { ProfilePage, SessionsPage, NotificationsPage, SupportPage, ReviewsPage, ActivityPage, SettingsPage } from "./web/pages/RoleAccount";
+import RoleChat from "./web/pages/RoleChat";
+import { VendorOrders, VendorMenu, RiderDeliveries, RiderOrderDetail } from "./web/pages/RoleOperations";
+import { VendorOrderDetail, VendorPasswordSettings, VendorPaymentSettings, VendorSettings } from "./web/pages/VendorPages";
+import RiderMapPage from "./web/pages/RiderMapPage";
 import AdminRoute from "./admin/AdminRoute";
-import VendorChat from "./vendor/pages/VendorChat";
-import ForgotPassword from "./auth/ForgotPassword";
-import Device from "./user/component/Device";
-import RiderChat from "./ride/pages/RiderChat";
-
-// Footer Pages
 import About from "./pages/About";
 import Careers from "./pages/Careers";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Terms from "./pages/Terms";
 import AccountDeletion from "./pages/AccountDeletion";
-// Change these three imports from static to lazy
-import { Suspense } from "react";
 
-const AppRoutes = () => {
-  return (
-    <Routes>
-      {/* normal user */}
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/user-home" element={<Home />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/user-dashboard" element={<UserDashboard />} />
-      <Route path="/search" element={<SearchComponent />} />
-      <Route path="/market" element={<MArket />} />
-      <Route
-        path="/inbox"
-        element={
-          <Suspense fallback={<div />}>
-            <ChatApp />
-          </Suspense>
-        }
-      />
-      <Route path="/notification" element={<Notification />} />
-      <Route path="/cart" element={<FoodCartApp />} />
-      <Route path="/payment" element={<PaymentComponent />} />
-      <Route path="/payment-verify" element={<PaymentVerify />} />
-      <Route path="/profile" element={<Profile />} />
-      <Route path="/device" element={<Device />} />
-      <Route path="/profile-edit" element={<ProfileEditForm />} />
-      <Route path="/support" element={<Support />} />
-      <Route path="/wallet" element={<WalletComponent />} />
-      <Route path="/booking" element={<Booking />} />
+const AdminDashboard = lazy(() => import("./admin/dashboard/AdminDashboard"));
+const AdminLogin = lazy(() => import("./admin/login/AdminLogin"));
 
-      {/* Password Reset Route - Shared by all user types */}
-      <Route path="/forgot-password" element={<ForgotPassword />} />
+export default function AppRoutes() {
+  return <Suspense fallback={<div className="pepi-loading" role="status">Loading…</div>}><Routes>
+    <Route path="/" element={<Landing />} />
+    <Route path="/vendors" element={<PartnerLanding role="vendor" />} />
+    <Route path="/riders" element={<PartnerLanding role="rider" />} />
+    <Route path="/signin" element={<RoleLogin />} />
+    <Route path="/login" element={<Navigate to="/signin" replace />} />
+    <Route path="/signup" element={<Registration />} />
+    <Route path="/forgot-password" element={<PasswordReset />} />
+    <Route path="/vendor-login" element={<Navigate to="/signin?role=vendor" replace />} />
+    <Route path="/rider-login" element={<Navigate to="/signin?role=rider" replace />} />
+    <Route path="/vendor-signup" element={<Navigate to="/signup?role=vendor" replace />} />
+    <Route path="/rider-registration" element={<Navigate to="/signup?role=rider" replace />} />
 
-      {/* vendor */}
+    <Route path="/customer" element={<ProtectedWorkspace role="customer" />}>
+      <Route index element={<Navigate to="home" replace />} />
+      <Route path="home" element={<CustomerHome />} />
+      <Route path="onboarding" element={<CustomerOnboarding />} />
+      <Route path="search" element={<CustomerSearch />} />
+      <Route path="kitchen/:id" element={<CustomerKitchen />} />
+      <Route path="cart" element={<CustomerCart />} />
+      <Route path="checkout" element={<CustomerCheckout />} />
+      <Route path="payment-verify" element={<CustomerPaymentVerify />} />
+      <Route path="wallet/verify" element={<WalletVerify />} />
+      <Route path="orders" element={<CustomerOrders />} />
+      <Route path="orders/:id" element={<CustomerOrderRoute />} />
+      <Route path="messages" element={<RoleChat />} />
+      <Route path="notifications" element={<NotificationsPage role="customer" />} />
+      <Route path="profile" element={<ProfilePage role="customer" />} />
+      <Route path="profile/edit" element={<ProfilePage role="customer" edit />} />
+      <Route path="profile/sessions" element={<SessionsPage />} />
+      <Route path="wallet" element={<CustomerWallet />} />
+      <Route path="addresses" element={<CustomerAddresses />} />
+      <Route path="support" element={<SupportPage />} />
+      <Route path="favorites" element={<CustomerFavorites />} />
+      <Route path="offers" element={<CustomerOffers />} />
+      <Route path="change-password" element={<CustomerPassword />} />
+      <Route path="faq" element={<CustomerFaq />} />
+      <Route path="preferences" element={<CustomerPreferences />} />
+    </Route>
 
-      <Route path="/vendor-dashboard" element={<VendorDashboard />} />
-      <Route
-        path="/vendor-chat"
-        element={
-          <Suspense fallback={<div />}>
-            <VendorChat />
-          </Suspense>
-        }
-      />
+    <Route path="/vendor" element={<ProtectedWorkspace role="vendor" />}>
+      <Route index element={<Navigate to="dashboard" replace />} />
+      <Route path="onboarding" element={<CompleteProfile role="vendor" />} />
+      <Route path="dashboard" element={<VendorDashboard />} />
+      <Route path="orders" element={<VendorOrders />} />
+      <Route path="orders/:id" element={<VendorOrderDetail />} />
+      <Route path="menu" element={<VendorMenu />} />
+      <Route path="earnings" element={<EarningsPage role="vendor" />} />
+      <Route path="chat" element={<RoleChat />} />
+      <Route path="notifications" element={<NotificationsPage role="vendor" />} />
+      <Route path="profile" element={<ProfilePage role="vendor" />} />
+      <Route path="profile/edit" element={<ProfilePage role="vendor" edit />} />
+      <Route path="profile/sessions" element={<SessionsPage />} />
+      <Route path="reviews" element={<ReviewsPage role="vendor" />} />
+      <Route path="history" element={<ActivityPage role="vendor" />} />
+      <Route path="support" element={<SupportPage />} />
+      <Route path="settings" element={<VendorSettings />} />
+      <Route path="payment-settings" element={<VendorPaymentSettings />} />
+      <Route path="change-password" element={<VendorPasswordSettings />} />
+    </Route>
 
-      <Route path="/welcome1" element={<Rider1 />} />
-      <Route path="/welcome2" element={<Rider2 />} />
-      <Route path="/welcome3" element={<Rider3 />} />
-      <Route path="/welcome4" element={<Rider4 />} />
-      <Route path="/welcome5" element={<Rider5 />} />
-      <Route path="/welcome6" element={<Rider6 />} />
-      <Route path="/vendor-signup" element={<VendorSignup />} />
-      <Route path="/vendor-login" element={<VendorLogin />} />
-      <Route path="/order" element={<OrdersManagement />} />
-      <Route path="/vendor-profile" element={<Account />} />
-      <Route path="/ProfileSetting" element={<ProfileSetting />} />
-      <Route path="/orderhistory" element={<OrderHistory />} />
-      <Route path="/Support-vendor" element={<SupportPage />} />
-      <Route path="/DevicesSession" element={<DevicesAndSessions />} />
-      <Route path="/menu" element={<RestaurantMenu />} />
-      <Route path="/earning" element={<EarningsPayment />} />
-      <Route path="/reviews" element={<ReviewsPage />} />
-      <Route path="/smsg" element={<NotificationsPage />} />
+    <Route path="/rider" element={<ProtectedWorkspace role="rider" />}>
+      <Route index element={<Navigate to="dashboard" replace />} />
+      <Route path="onboarding" element={<CompleteProfile role="rider" />} />
+      <Route path="dashboard" element={<RiderDashboard />} />
+      <Route path="deliveries" element={<RiderDeliveries />} />
+      <Route path="deliveries/:id" element={<RiderOrderDetail />} />
+      <Route path="map" element={<RiderMapPage />} />
+      <Route path="earnings" element={<EarningsPage role="rider" />} />
+      <Route path="chat" element={<RoleChat />} />
+      <Route path="notifications" element={<NotificationsPage role="rider" />} />
+      <Route path="profile" element={<ProfilePage role="rider" />} />
+      <Route path="profile/edit" element={<ProfilePage role="rider" edit />} />
+      <Route path="profile/sessions" element={<SessionsPage />} />
+      <Route path="reviews" element={<ReviewsPage role="rider" />} />
+      <Route path="support" element={<SupportPage />} />
+      <Route path="settings" element={<SettingsPage />} />
+      <Route path="activity" element={<ActivityPage role="rider" />} />
+    </Route>
 
-      {/* rider */}
-      <Route path="/onboarding" element={<OnboardingScreen />} />
-      <Route path="/rider-login" element={<RiderLogin />} />
-      <Route path="/rider-registration" element={<RiderRegistration />} />
-      <Route path="/rider-dashboard" element={<RiderDashboard />} />
-      <Route path="/rider-order" element={<RiderOrder />} />
-      <Route path="/map" element={<FoodDeliveryMap />} />
-      <Route path="/rider-profile" element={<ProfileScreen />} />
-      <Route path="/rider-notifications" element={<DeliveryNotifications />} />
-      <Route path="*" element={<div>404 Not Found</div>} />
-      <Route path="/rider-profilesetting" element={<RiderProfileSettings />} />
-      <Route path="/daily-rider" element={<DailyRiderApp />} />
-      <Route path="/rider-earning" element={<RiderEarningsPayment />} />
-      <Route path="/rider-device" element={<RiderDevice />} />
-      <Route path="/rider-support" element={<RiderSupport />} />
-      <Route path="/rider-settings" element={<SettingsScreen />} />
-      <Route
-        path="/rider-chat"
-        element={
-          <Suspense fallback={<div />}>
-            <RiderChat />
-          </Suspense>
-        }
-      />
-
-      {/* Admin section */}
-      <Route path="/admin-login" element={<AdminLogin />} />
-      <Route
-        path="/admin-dashboard"
-        element={
-          <AdminRoute>
-            <AdminDashboard />
-          </AdminRoute>
-        }
-      />
-
-      {/* Footer Pages */}
-      <Route path="/about" element={<About />} />
-      <Route path="/careers" element={<Careers />} />
-      <Route path="/privacy" element={<PrivacyPolicy />} />
-      <Route path="/terms" element={<Terms />} />
-      <Route path="/account-deletion" element={<AccountDeletion />} />
-    </Routes>
-  );
-};
-
-export default AppRoutes;
+    <Route path="/admin-login" element={<AdminLogin />} />
+    <Route path="/admin-dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+    <Route path="/about" element={<About />} />
+    <Route path="/careers" element={<Careers />} />
+    <Route path="/privacy" element={<PrivacyPolicy />} />
+    <Route path="/terms" element={<Terms />} />
+    <Route path="/account-deletion" element={<AccountDeletion />} />
+    <Route path="*" element={<NotFound />} />
+  </Routes></Suspense>;
+}

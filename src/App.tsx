@@ -1,12 +1,10 @@
-import Route from "./AppRoutes";
+import AppRoutes from "./AppRoutes";
 import { ToastProvider } from "./context/ToastContext";
-// import { ChatFloatingBubble } from "./component/ChatFloatingBubble";
 
 const App = () => {
   return (
     <ToastProvider>
-      <Route />
-      {/* <ChatFloatingBubble /> */}
+      <AppRoutes />
     </ToastProvider>
   );
 };

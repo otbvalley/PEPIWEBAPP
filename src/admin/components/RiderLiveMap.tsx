@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import api, { getAdminWebSocketUrl } from "../../services/api";
 import { animateGoogleMarker, loadGoogleMaps } from "../../services/googleMaps";
 
-type Props = { riderId?: string; orderId?: string; className?: string };
+type Props = { riderId?: string; orderId?: string; className?: string; audience?: "admin" | "workspace" };
 
 const utcTimestampMs = (value?: string | null) => {
   if (!value) return null;
@@ -12,7 +12,7 @@ const utcTimestampMs = (value?: string | null) => {
   return Number.isFinite(timestamp) ? timestamp : null;
 };
 
-export default function RiderLiveMap({ riderId, orderId, className = "" }: Props) {
+export default function RiderLiveMap({ riderId, orderId, className = "", audience = "admin" }: Props) {
   const [tracking, setTracking] = useState<any>(null);
   const [trackingError, setTrackingError] = useState("");
   const [mapError, setMapError] = useState("");
@@ -23,7 +23,7 @@ export default function RiderLiveMap({ riderId, orderId, className = "" }: Props
   const riderMarker = useRef<any>(null);
   const destinationMarker = useRef<any>(null);
   const connectedRef = useRef(false);
-  const endpoint = orderId ? `/admin/orders/${orderId}/live-location` : `/admin/riders/${riderId}/live-location`;
+  const endpoint = orderId ? `${audience === "admin" ? "/admin" : ""}/orders/${orderId}/live-location` : `/admin/riders/${riderId}/live-location`;
   const topic = orderId ? `order_location:${orderId}` : `rider_location:${riderId}`;
 
   useEffect(() => {

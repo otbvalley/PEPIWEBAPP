@@ -1,3 +1,5 @@
+// Existing browser key remains as a compatibility fallback for the admin map.
+// Configure VITE_GOOGLE_MAPS_API_KEY with a domain-restricted key for deployment.
 const LEGACY_WEB_MAPS_KEY = "AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8";
 
 export const GOOGLE_MAPS_BROWSER_KEY = String(
@@ -8,6 +10,7 @@ let loaderPromise: Promise<void> | null = null;
 
 export function loadGoogleMaps(): Promise<void> {
   if (window.google?.maps) return Promise.resolve();
+  if (!GOOGLE_MAPS_BROWSER_KEY) return Promise.reject(new Error("Google Maps is not configured for this website"));
   if (loaderPromise) return loaderPromise;
 
   loaderPromise = new Promise<void>((resolve, reject) => {

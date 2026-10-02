@@ -11,6 +11,13 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+// Public discovery must never inherit a stale signed-in session. A rejected
+// optional bearer token would otherwise turn public endpoints into 401s.
+export const publicApi = axios.create({
+  baseURL: API_BASE_URL,
+  headers: { "Content-Type": "application/json" },
+});
+
 export const getAdminWebSocketUrl = () => {
   const url = new URL(API_BASE_URL, window.location.origin);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
@@ -36,6 +43,28 @@ type RetryableRequestConfig = NonNullable<AxiosError["config"]> & {
 };
 
 let adminSessionRefreshPromise: Promise<string | null> | null = null;
+let roleSessionRefreshPromise: Promise<string | null> | null = null;
+
+export const refreshRoleSession = (): Promise<string | null> => {
+  if (roleSessionRefreshPromise) return roleSessionRefreshPromise;
+  const refreshToken = localStorage.getItem("refreshToken");
+  if (!refreshToken) return Promise.resolve(null);
+  roleSessionRefreshPromise = axios.post<AdminRefreshResponse>(`${API_BASE_URL}/auth/refresh`, { refresh_token: refreshToken })
+    .then(({ data }) => {
+      if (!data.access_token || !data.user?.role) throw new Error("Invalid session response");
+      const claims = JSON.parse(atob(data.access_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))) as { vendor_id?: string; rider_id?: string; profile_completed?: boolean; onboarding_completed?: boolean };
+      localStorage.setItem("authToken", data.access_token);
+      localStorage.setItem("refreshToken", data.refresh_token || refreshToken);
+      localStorage.setItem("userData", JSON.stringify({ ...data.user, vendor_id: claims.vendor_id, rider_id: claims.rider_id, profile_completed: claims.profile_completed, onboarding_completed: claims.onboarding_completed }));
+      return data.access_token;
+    })
+    .catch((error: unknown) => {
+      if (axios.isAxiosError(error) && [401, 403, 422].includes(error.response?.status || 0)) clearAdminSession();
+      throw error;
+    })
+    .finally(() => { roleSessionRefreshPromise = null; });
+  return roleSessionRefreshPromise;
+};
 
 export const clearAdminSession = () => {
   localStorage.removeItem("authToken");
@@ -88,6 +117,9 @@ api.interceptors.request.use(
     }
     const token = localStorage.getItem("authToken");
     if (token) config.headers.Authorization = `Bearer ${token}`;
+    // Let the browser add the multipart boundary. Keeping the instance-wide
+    // application/json header here causes FastAPI to receive an empty body.
+    if (config.data instanceof FormData) config.headers.delete("Content-Type");
     return config;
   },
   (error) => Promise.reject(error),
@@ -99,11 +131,11 @@ api.interceptors.response.use(
     if (!axios.isAxiosError(error)) return Promise.reject(error);
 
     const originalRequest = error.config as RetryableRequestConfig | undefined;
-    const isLoginRequest = originalRequest?.url?.includes("/auth/login") || originalRequest?.url?.includes("/auth/admin/login") || originalRequest?.url?.includes("/auth/admin-2fa/verify");
+    const isLoginRequest = /\/auth\/(?:login|customer\/login|vendor\/login|rider\/login|admin\/login|admin-2fa\/verify)/.test(originalRequest?.url || "");
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isLoginRequest) {
       originalRequest._retry = true;
       try {
-        const token = await confirmAdminSession();
+        const token = window.location.pathname.startsWith("/admin") ? await confirmAdminSession() : await refreshRoleSession();
         if (!token) throw new Error("No refresh token available");
         originalRequest.headers.Authorization = `Bearer ${token}`;
         return api(originalRequest);
@@ -578,10 +610,10 @@ export const getVendorOrders = async (vendorId: string | number) => {
 // ─── Riders ───────────────────────────────────────────────────────────────────
 
 export const riderAcceptOrder = (orderId: string | number) =>
-  api.post(`/riders/accept-orders/${orderId}`);
+  api.post(`/riders/orders/${orderId}/accept`);
 
 export const riderRejectOrder = (orderId: string | number) =>
-  api.post(`/riders/reject-orders/${orderId}`);
+  api.post(`/riders/reject-order/${orderId}`);
 
 export const getAvailableDeliveries = () => api.get("/riders/available-orders");
 
@@ -617,15 +649,14 @@ export const getRiderEarningsHistory = async () => {
 };
 
 export const updateRiderStatus = (_riderId: string, status: string) =>
-  api.patch("/riders/status", null, {
-    params: { is_active: status === "active" },
-  });
+  api.patch("/riders/status", { is_active: status === "active" });
 
 export const updateRiderOrderStatus = (
   orderId: string | number,
   status: string,
+  orderCode?: string,
 ) =>
-  api.patch(`/riders/orders/${orderId}/status`, null, { params: { status } });
+  api.patch(`/riders/orders/${orderId}/status`, null, { params: { status, order_code: orderCode } });
 
 export const getRiderProfile = () => api.get("/riders/profile");
 
