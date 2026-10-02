@@ -88,7 +88,7 @@ export default function Landing() {
         .from("[data-line]", { yPercent: 110, stagger: .08, duration: .9 }, "-=.2")
         .from("[data-intro]", { y: 24, opacity: 0, stagger: .08, duration: .65 }, "-=.55")
         .from("[data-device]", { y: 52, rotate: 5, opacity: 0, stagger: .1, duration: .95 }, "-=.7");
-      gsap.to(".hero-track", { y: 10, x: -5, duration: 5.4, repeat: -1, yoyo: true, ease: "sine.inOut" });
+      gsap.to(".hero-mock", { y: 10, x: -5, duration: 5.4, repeat: -1, yoyo: true, ease: "sine.inOut" });
       gsap.utils.toArray<HTMLElement>("[data-reveal]").forEach((element) => gsap.from(element, { y: 42, opacity: 0, duration: .8, ease: "power3.out", scrollTrigger: { trigger: element, start: "top 88%", once: true } }));
       gsap.fromTo(".category-track", { xPercent: 3 }, { xPercent: -4, ease: "none", scrollTrigger: { trigger: ".categories", start: "top bottom", end: "bottom top", scrub: 1 } });
     }, root);
@@ -111,7 +111,12 @@ export default function Landing() {
           <form className="location-form" onSubmit={submit} data-intro><MapPin/><label><span className="sr-only">Delivery address</span><input value={address} onChange={e => setAddress(e.target.value)} placeholder="What is your delivery address?"/></label><button>Find food <ArrowRight/></button></form>
           <button className="use-location" data-intro onClick={() => navigate("/signup?role=customer")}>Use my current location</button>
         </div>
-        <div className="hero-scene"><div className="hero-browser" data-device><Browser/></div><div className="hero-phone" data-device><Phone/></div><div className="hero-track" data-device><Phone tracking/></div><div className="order-chip" data-device><i/><div><small>Order confirmed</small><strong>Lola's Kitchen</strong></div></div></div>
+        <div className="hero-scene">
+          <picture className="hero-mock" data-device>
+            <source srcSet="/mockups/pepi-app-devices.webp" type="image/webp"/>
+            <img src="/mockups/pepi-app-devices.png" width="1247" height="1261" alt="Pepi food ordering and live delivery tracking on two phones" fetchPriority="high"/>
+          </picture>
+        </div>
       </section>
 
       <section className="land-section discover" id="discover" data-reveal><div className="section-heading"><h2>Your next favourite kitchen is close by.</h2><Link to="/signup?role=customer">See kitchens near you <ArrowRight/></Link></div><label className="public-search"><Search/><span className="sr-only">Search meals and kitchens</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search real meals and kitchens"/>{query && <button type="button" onClick={() => setQuery("")} aria-label="Clear search"><X/></button>}</label>{searching && <p className="public-search-status" role="status">Searching available menus...</p>}{searchError && <p className="public-search-error" role="alert">{searchError}</p>}{query.trim() && !searching && !searchError && <div className="public-results"><div className="public-result-group"><h3>Kitchens</h3><div className="kitchen-grid compact">{kitchenResults.map(kitchen => <PublicKitchenCard kitchen={kitchen} key={kitchen.id}/>)}</div>{!kitchenResults.length && <p>No matching kitchens are open.</p>}</div><div className="public-result-group"><h3>Meals</h3><div className="public-meal-grid">{mealResults.map(meal => <PublicMealCard meal={meal} key={meal.id}/>)}</div>{!mealResults.length && <p>No matching meals are available.</p>}</div></div>}{!query.trim() && <><div className="kitchen-grid">{(home?.all_kitchens || []).slice(0, 4).map(kitchen => <PublicKitchenCard kitchen={kitchen} key={kitchen.id}/>)}</div>{home && home.all_kitchens.length === 0 && <p className="public-empty">No kitchens are open right now. Please check again soon.</p>}<div className="public-result-group featured-meals"><div className="section-heading small"><h2>Meals available now.</h2><Link to="/signup?role=customer">Start an order <ArrowRight/></Link></div><div className="public-meal-grid">{(home?.top_items || []).slice(0, 8).map(meal => <PublicMealCard meal={meal} key={meal.id}/>)}</div></div></>}</section>
