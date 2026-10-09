@@ -4,4 +4,5 @@
 
 /* Stable sign-in composition */
 .auth-refresh.login>aside{position:fixed;inset:0 auto 0 0;width:42%;height:100svh;background:radial-gradient(circle at 78% 16%,#ffffff22,transparent 27%),linear-gradient(145deg,#2D8C1F,#1F6B14);color:#fff}.auth-refresh.login>aside:after{border-color:#ffffff14}.auth-refresh.login .auth-story>img{padding:8px;border-radius:18px;background:#fff}.auth-refresh.login .auth-story>p,.auth-refresh.login>aside>small{color:#ffffffbd}.auth-refresh.login .auth-story svg{color:var(--y)}.auth-refresh.login>main{grid-column:2;width:min(100%,650px);min-height:100svh;display:flex;flex-direction:column;justify-content:center}.auth-refresh.login main>header{margin-bottom:38px}.auth-refresh.login .auth-form{gap:22px}
+.auth-check{display:flex;align-items:flex-start;gap:11px;color:#323832;font-size:13px;font-weight:700;line-height:1.5}.auth-check input{flex:none;width:18px;height:18px;margin:1px 0 0;accent-color:var(--g)}
 @media(max-width:900px){.auth-refresh.login>aside{display:none}.auth-refresh.login>main{grid-column:1;min-height:auto;justify-content:start}}

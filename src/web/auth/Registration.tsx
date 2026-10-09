@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, Eye, EyeOff, LockKeyhole, Mail, Phone, UserRound
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../services/api";
 import { backendAuthService } from "../../services/backendAuthService";
-import { roleHome, type PepiRole } from "./roleRouting";
+import { roleEntry, type PepiRole } from "./roleRouting";
 import { AuthField, AuthShell } from "./AuthShell";
 
 const errorText = (error: unknown) => (error as { response?: { data?: { detail?: string } }; message?: string }).response?.data?.detail || (error as Error).message || "Please try again.";
@@ -17,7 +17,7 @@ export function Registration() {
   const strength = useMemo(() => [password.length >= 8, /[A-Z]/.test(password), /[0-9]/.test(password), /[^A-Za-z0-9]/.test(password)].filter(Boolean).length, [password]);
   const next = (event: FormEvent) => { event.preventDefault(); setError(""); setStep(value => value + 1); };
   async function register(event: FormEvent) { event.preventDefault(); setBusy(true); setError(""); try { await backendAuthService.register({ email, password, firstname: first, lastname: last, phone, user_type: role }); setStep(4); setNotice("We sent a six-digit code to your email."); } catch (err) { setError(errorText(err)); } finally { setBusy(false); } }
-  async function verify(event: FormEvent) { event.preventDefault(); setBusy(true); setError(""); try { const result = await backendAuthService.verifyOTP(email, otp, role); navigate(roleHome(result.user?.role || role), { replace: true }); } catch (err) { setError(errorText(err)); } finally { setBusy(false); } }
+  async function verify(event: FormEvent) { event.preventDefault(); setBusy(true); setError(""); try { const result = await backendAuthService.verifyOTP(email, otp, role); navigate(roleEntry(result.user), { replace: true }); } catch (err) { setError(errorText(err)); } finally { setBusy(false); } }
   async function resend() { setError(""); try { await api.post("/auth/send-otp", { email }); setNotice("A new code has been sent."); } catch (err) { setError(errorText(err)); } }
   const headings = [["How will you use Pepi?", "Choose the account that matches what you want to do."], ["Tell us about you", "Use the name and phone number you want connected to your account."], ["Secure your account", "Choose your sign-in details. You can change them later."], ["Verify your email", `Enter the code sent to ${email}.`]];
   return <AuthShell title={headings[step - 1][0]} copy={headings[step - 1][1]} step={step}>{notice && <p className="auth-notice">{notice}</p>}{error && <p role="alert" className="auth-error">{error}</p>}

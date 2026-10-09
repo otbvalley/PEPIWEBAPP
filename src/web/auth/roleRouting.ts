@@ -15,6 +15,15 @@ export function roleHome(role?: string) {
   }
 }
 
+export function roleEntry(user?: Partial<UserData> | null) {
+  const role = user?.role;
+  if ((role === "vendor" || role === "rider" || role === "customer")
+    && (user?.profile_completed !== true || user?.onboarding_completed !== true)) {
+    return `/${role}/onboarding`;
+  }
+  return roleHome(role);
+}
+
 export function readStoredUser(): UserData | null {
   try {
     const raw = localStorage.getItem("userData");

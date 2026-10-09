@@ -37,8 +37,13 @@ export default function ProtectedWorkspace({ role }: { role: Exclude<PepiRole, "
     if (claims?.role && claims.role !== role) return <Navigate to={roleHome(claims.role)} replace />;
     return <Navigate to={`/signin?role=${role}`} replace state={{ from: location.pathname + location.search }} />;
   }
-  if ((state.user.profile_completed === false || state.user.onboarding_completed === false) && location.pathname !== `/${role}/onboarding`) {
+  const onboardingPath = `/${role}/onboarding`;
+  const onboardingComplete = state.user.profile_completed === true && state.user.onboarding_completed === true;
+  if (!onboardingComplete && location.pathname !== onboardingPath) {
     return <Navigate to={`/${role}/onboarding`} replace />;
+  }
+  if (onboardingComplete && location.pathname === onboardingPath) {
+    return <Navigate to={roleHome(role)} replace />;
   }
   return <WebShell role={role} user={state.user} />;
 }

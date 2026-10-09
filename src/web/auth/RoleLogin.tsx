@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { backendAuthService as authService } from "../../services/backendAuthService";
-import { roleHome } from "./roleRouting";
+import { roleEntry, roleHome } from "./roleRouting";
 import { AuthField, AuthShell } from "./AuthShell";
 
 export default function RoleLogin() {
@@ -11,7 +11,7 @@ export default function RoleLogin() {
   const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [show, setShow] = useState(false); const [error, setError] = useState(""); const [loading, setLoading] = useState(false);
   async function submit(event: FormEvent) {
     event.preventDefault(); setError(""); setLoading(true);
-    try { const result = await authService.login(email, password); const role = result.user?.role; const returnTo = (location.state as { from?: string } | null)?.from; navigate(role && returnTo?.startsWith(`/${role}/`) && !returnTo.startsWith("//") ? returnTo : roleHome(role), { replace: true }); }
+    try { const result = await authService.login(email, password); const role = result.user?.role; const entry = roleEntry(result.user); const returnTo = (location.state as { from?: string } | null)?.from; const canReturn = Boolean(entry === roleHome(role) && role && returnTo?.startsWith(`/${role}/`) && !returnTo.startsWith("//")); navigate(canReturn && returnTo ? returnTo : entry, { replace: true }); }
     catch (err) { setError(err instanceof Error ? err.message : "We could not sign you in. Check your details and try again."); }
     finally { setLoading(false); }
   }
