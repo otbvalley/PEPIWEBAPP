@@ -99,7 +99,7 @@ export default function WebShell({ role, user }: Props) {
   return <div className={`pepi-shell pepi-shell--${role}`}>
     {sidebarOpen && <button className="pepi-sidebar-overlay" onClick={() => setSidebarOpen(false)} aria-label="Close navigation" />}
     <aside id="pepi-navigation" className={`pepi-sidebar${sidebarOpen ? " is-open" : ""}`} aria-label={`${roleName} navigation`}>
-      <div className="pepi-sidebar-brand"><NavLink to={dashboardPath} className="pepi-logo"><img src={logo} alt="PickIT PickEAT" /></NavLink><span>{roleName}</span><button className="pepi-sidebar-close" onClick={() => { setSidebarOpen(false); menuButtonRef.current?.focus(); }} aria-label="Close navigation"><X size={21}/></button></div>
+      <div className="pepi-sidebar-brand"><NavLink to={dashboardPath} className="pepi-logo"><img src={logo} alt="PickeatPickit" /></NavLink><span>{roleName}</span><button className="pepi-sidebar-close" onClick={() => { setSidebarOpen(false); menuButtonRef.current?.focus(); }} aria-label="Close navigation"><X size={21}/></button></div>
       <NavLink to={`/${role}/profile`} className="pepi-sidebar-user">
         <span className="pepi-user-avatar">{initials}</span>
         <span className="pepi-user-copy"><strong>{firstName}</strong><small>{user.email}</small></span>

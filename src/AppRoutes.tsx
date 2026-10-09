@@ -7,7 +7,7 @@ import RoleLogin from "./web/auth/RoleLogin";
 import ProtectedWorkspace from "./web/auth/ProtectedWorkspace";
 import CompleteProfile from "./web/auth/CompleteProfile";
 import { Registration, PasswordReset } from "./web/auth/Registration";
-import { CustomerHome, CustomerSearch, CustomerKitchen, VendorDashboard, RiderDashboard } from "./web/pages/WorkspacePages";
+import { CustomerHome, CustomerSearch, CustomerKitchen, CustomerMealDetail, VendorDashboard, RiderDashboard } from "./web/pages/WorkspacePages";
 import { CustomerCart, CustomerCheckout, CustomerPaymentVerify } from "./web/customer/CartFlow";
 import CustomerAddresses from "./web/customer/Addresses";
 import CustomerOrders from "./web/customer/Orders";
@@ -47,6 +47,7 @@ export default function AppRoutes() {
       <Route path="home" element={<CustomerHome />} />
       <Route path="onboarding" element={<CustomerOnboarding />} />
       <Route path="search" element={<CustomerSearch />} />
+      <Route path="meal/:id" element={<CustomerMealDetail />} />
       <Route path="kitchen/:id" element={<CustomerKitchen />} />
       <Route path="cart" element={<CustomerCart />} />
       <Route path="checkout" element={<CustomerCheckout />} />

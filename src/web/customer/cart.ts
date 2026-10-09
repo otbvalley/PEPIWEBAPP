@@ -10,6 +10,6 @@ export function addToCart(line: CartLine) {
   const customized = Boolean(line.addons?.length || line.specialInstructions || line.scheduledAt);
   if (customized) line = { ...line, originalId: line.originalId || line.id, id: `${line.id}-${Date.now()}` };
   const existing = customized ? undefined : lines.find(item => item.id === line.id);
-  if (existing) existing.quantity += 1; else lines.push(line);
+  if (existing) existing.quantity += Math.max(1, line.quantity); else lines.push(line);
   saveCart(lines); return true;
 }

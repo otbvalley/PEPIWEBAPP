@@ -70,14 +70,14 @@ export default function CustomerAddresses() {
     try { await api.delete(`/customer/addresses/${item.id}`); if (editingId === item.id) resetForm(); await load(); }
     catch { setError("Could not delete address."); }
   }
-  return <>
+  return <div className="pepi-address-page">
     <div className="pepi-page-heading"><div><p className="pepi-eyebrow">Delivery</p><h2>Saved addresses</h2></div></div>
     {error && <p role="alert" className="pepi-form-error">{error}</p>}
-    <div className="pepi-panel">{items.length ? items.map(item => <div className="pepi-cart-row" key={item.id}>
+    <div className="pepi-address-grid">{items.length ? items.map(item => <article className={`pepi-address-card ${item.is_default ? "is-default" : ""}`} key={item.id}>
       <div><strong>{item.address_name || "Address"}{item.is_default ? " · Default" : ""}</strong><small>{item.address}</small>{(item.apartment || item.building_name) && <small>{[item.apartment, item.building_name].filter(Boolean).join(" · ")}</small>}{item.delivery_instructions && <small>{item.delivery_instructions}</small>}</div>
       <div><button onClick={() => startEdit(item)}>Edit</button><button disabled={item.is_default} onClick={() => void makeDefault(item)}>Set default</button><button onClick={() => void remove(item)}>Delete</button></div>
-    </div>) : <p>No saved addresses yet.</p>}</div>
-    <form className="pepi-panel pepi-checkout-form" onSubmit={save}>
+    </article>) : <div className="pepi-panel">No saved addresses yet. Add the address you use most.</div>}</div>
+    <form className="pepi-panel pepi-checkout-form pepi-address-form" onSubmit={save}>
       <h3>{editingId ? "Edit address" : "Add an address"}</h3>
       <label>Name<input value={name} onChange={event => setName(event.target.value)} placeholder="Home or Office" /></label>
       <label>Full address<textarea value={address} onChange={event => setAddress(event.target.value)} required /></label>
@@ -87,5 +87,5 @@ export default function CustomerAddresses() {
       <label>Delivery instructions (optional)<textarea value={instructions} onChange={event => setInstructions(event.target.value)} /></label>
       <div className="pepi-form-actions"><button className="pepi-primary" disabled={busy}>{busy ? "Saving…" : editingId ? "Save changes" : "Save address"}</button>{editingId && <button type="button" onClick={resetForm}>Cancel</button>}</div>
     </form>
-  </>;
+  </div>;
 }
