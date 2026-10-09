@@ -39,7 +39,7 @@ export default function AdminLogin() {
     try {
       const response = challengeId
         ? await api.post("/auth/admin-2fa/verify", { challenge_id: challengeId, code })
-        : await api.post("/auth/admin/login", { email, password });
+        : await api.post("/auth/admin/login", { email: email.trim().toLowerCase(), password });
 
       if (response.data?.requires_2fa) {
         setChallengeId(response.data.challenge_id);
