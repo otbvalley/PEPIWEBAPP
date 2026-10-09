@@ -1,12 +1,12 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowRight, Bike, CheckCircle2, ChevronRight, Clock3, Compass, MapPin, PackageCheck, Search, ShoppingBag, Star, Store, TrendingUp, Truck, Utensils, WalletCards } from "lucide-react";
+import { ArrowRight, Bike, CheckCircle2, ChevronRight, Clock3, Compass, MapPin, PackageCheck, Plus, Search, ShoppingBag, Star, Store, TrendingUp, Truck, Utensils, WalletCards } from "lucide-react";
 import api from "../../services/api";
 import { addToCart } from "../customer/cart";
 import { readStoredUser } from "../auth/roleRouting";
 import "./WorkspaceExperience.css";
 
-type Meal = { id: string; vendor_id: string; name: string; price: number; image_url?: string; category?: string; description?: string; has_addons?: boolean; addons?: { id: string; name: string; price: number }[]; vendor?: { business_name?: string } };
+type Meal = { id: string; vendor_id: string; name: string; price: number; image_url?: string; category?: string; description?: string; preparation_time?: string; discount?: number; is_chef_special?: boolean; has_addons?: boolean; addons?: { id: string; name: string; price: number }[]; vendor?: { business_name?: string } };
 type Kitchen = { id: string; business_name: string; logo_url?: string; rating?: number | string; min_preparation_time?: number };
 type HomeSection = { key: string; title: string; items: Meal[] };
 type HomeData = { categories: string[]; top_items: Meal[]; all_kitchens: Kitchen[]; sections?: HomeSection[] };
@@ -33,10 +33,30 @@ function LoadState({ loading, error, retry }: { loading: boolean; error: string;
   return null;
 }
 function MealCard({ item }: { item: Meal }) {
-  return <Link to={`/customer/kitchen/${item.vendor_id}`} className="pepi-product-card">
-    <div className="pepi-product-image">{item.image_url ? <img src={item.image_url} alt={item.name} loading="lazy" /> : <span className="pepi-image-fallback"><Utensils size={28}/></span>}<span className="pepi-product-action"><ArrowRight size={15}/></span></div>
-    <div><small>{item.vendor?.business_name || item.category || "Freshly prepared"}</small><h3>{item.name}</h3><strong>₦{Number(item.price).toLocaleString("en-NG")}</strong></div>
-  </Link>;
+  const [cartMessage, setCartMessage] = useState("");
+  const addMeal = () => {
+    const added = addToCart({ id: item.id, originalId: item.id, vendor_id: item.vendor_id, vendor_name: item.vendor?.business_name, name: item.name, price: Number(item.price), quantity: 1, image_url: item.image_url });
+    setCartMessage(added ? "Added" : "Finish your current cart first");
+    window.setTimeout(() => setCartMessage(""), 2200);
+  };
+  return <article className="pepi-product-card pepi-customer-meal-card">
+    <Link to={`/customer/kitchen/${item.vendor_id}`} className="pepi-meal-card-link" aria-label={`View ${item.name}`}>
+      <div className="pepi-product-image">
+        {item.image_url ? <img src={item.image_url} alt={item.name} loading="lazy" /> : <span className="pepi-image-fallback"><Utensils size={28}/></span>}
+        <span className="pepi-meal-badges">{item.discount ? <b>{item.discount}% off</b> : null}{item.is_chef_special ? <b>Chef special</b> : null}</span>
+      </div>
+      <div className="pepi-meal-card-copy">
+        <small>{item.vendor?.business_name || "Local kitchen"}</small>
+        <h3>{item.name}</h3>
+        {item.description && <p>{item.description}</p>}
+        <span className="pepi-meal-meta">{item.category && <span>{item.category}</span>}{item.preparation_time && <span><Clock3 size={12}/>{item.preparation_time}</span>}</span>
+      </div>
+    </Link>
+    <div className="pepi-meal-card-footer">
+      <strong>₦{Number(item.price).toLocaleString("en-NG")}</strong>
+      <button type="button" onClick={addMeal} aria-label={`Add ${item.name} to cart`} className={cartMessage === "Added" ? "is-added" : ""}><Plus size={15}/><span>{cartMessage || "Add"}</span></button>
+    </div>
+  </article>;
 }
 export function CustomerHome() {
   const { data, loading, error, retry } = useLoad<HomeData>("/customer/home/v2");
