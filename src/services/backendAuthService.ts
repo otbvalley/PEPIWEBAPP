@@ -85,8 +85,8 @@ export const backendAuthService = {
   customerLogin: (email: string, password: string) => loginAt("/auth/customer/login", email, password),
   vendorLogin: (email: string, password: string) => loginAt("/auth/vendor/login", email, password),
   riderLogin: (email: string, password: string) => loginAt("/auth/rider/login", email, password),
-  async startCustomerPhoneAuth(phone: string) {
-    try { const { data } = await api.post("/auth/signin-check", { phone, platform: "web" }); return data as { user_exists: boolean; onboarding_completed: boolean }; }
+  async startCustomerPhoneAuth(phone: string, email?: string) {
+    try { const { data } = await api.post("/auth/signin-check", { phone, email: email || undefined, platform: "web" }); return data as { user_exists: boolean; onboarding_completed: boolean; email_sent: boolean }; }
     catch (error) { throw authError(error); }
   },
   async verifyCustomerPhoneOTP(phone: string, otp_code: string): Promise<LoginResponse> {
