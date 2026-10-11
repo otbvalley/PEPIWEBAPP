@@ -24,6 +24,7 @@ import Careers from "./pages/Careers";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Terms from "./pages/Terms";
 import AccountDeletion from "./pages/AccountDeletion";
+import CustomerBrowseAccess from "./web/customer/CustomerBrowseAccess";
 
 const AdminDashboard = lazy(() => import("./admin/dashboard/AdminDashboard"));
 const AdminLogin = lazy(() => import("./admin/login/AdminLogin"));
@@ -42,13 +43,16 @@ export default function AppRoutes() {
     <Route path="/vendor-signup" element={<Navigate to="/signup?role=vendor" replace />} />
     <Route path="/rider-registration" element={<Navigate to="/signup?role=rider" replace />} />
 
+    <Route path="/customer" element={<CustomerBrowseAccess />}>
+      <Route path="search" element={<CustomerSearch />} />
+      <Route path="meal/:id" element={<CustomerMealDetail />} />
+      <Route path="kitchen/:id" element={<CustomerKitchen />} />
+    </Route>
+
     <Route path="/customer" element={<ProtectedWorkspace role="customer" />}>
       <Route index element={<Navigate to="home" replace />} />
       <Route path="home" element={<CustomerHome />} />
       <Route path="onboarding" element={<CustomerOnboarding />} />
-      <Route path="search" element={<CustomerSearch />} />
-      <Route path="meal/:id" element={<CustomerMealDetail />} />
-      <Route path="kitchen/:id" element={<CustomerKitchen />} />
       <Route path="cart" element={<CustomerCart />} />
       <Route path="checkout" element={<CustomerCheckout />} />
       <Route path="payment-verify" element={<CustomerPaymentVerify />} />

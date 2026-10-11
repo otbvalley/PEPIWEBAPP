@@ -140,9 +140,9 @@ export default function Landing() {
 }
 
 function PublicKitchenCard({ kitchen }: { kitchen: PublicKitchen }) {
-  return <Link to={`/signup?role=customer&kitchen=${encodeURIComponent(kitchen.id)}`} className="kitchen"><div className="kitchen-art">{kitchen.logo_url ? <img src={kitchen.logo_url} alt={kitchen.business_name} loading="lazy"/> : <Store aria-hidden="true"/>}</div><div className="kitchen-meta"><div><h3>{kitchen.business_name}</h3><p>{kitchen.business_category || `${kitchen.min_preparation_time || 15} min preparation`}</p></div><span><Star/> {Number(kitchen.rating || 0) > 0 ? kitchen.rating : "New"}</span></div></Link>;
+  return <Link to={`/customer/kitchen/${encodeURIComponent(kitchen.id)}`} className="kitchen"><div className="kitchen-art">{kitchen.logo_url ? <img src={kitchen.logo_url} alt={kitchen.business_name} loading="lazy"/> : <Store aria-hidden="true"/>}</div><div className="kitchen-meta"><div><h3>{kitchen.business_name}</h3><p>{kitchen.business_category || `${kitchen.min_preparation_time || 15} min preparation`}</p></div><span><Star/> {Number(kitchen.rating || 0) > 0 ? kitchen.rating : "New"}</span></div></Link>;
 }
 
 function PublicMealCard({ meal }: { meal: PublicMeal }) {
-  return <Link to={`/signup?role=customer&meal=${encodeURIComponent(meal.id)}`} className="public-meal"><div>{meal.image_url ? <img src={meal.image_url} alt={meal.name} loading="lazy"/> : <Utensils aria-hidden="true"/>}</div><span><small>{meal.vendor?.business_name || meal.category || "Available now"}</small><strong>{meal.name}</strong><b>₦{Number(meal.price || 0).toLocaleString("en-NG")}</b></span></Link>;
+  return <Link to={`/customer/meal/${encodeURIComponent(meal.id)}`} className="public-meal"><div>{meal.image_url ? <img src={meal.image_url} alt={meal.name} loading="lazy"/> : <Utensils aria-hidden="true"/>}</div><span><small>{meal.vendor?.business_name || meal.category || "Available now"}</small><strong>{meal.name}</strong><b>₦{Number(meal.price || 0).toLocaleString("en-NG")}</b></span></Link>;
 }

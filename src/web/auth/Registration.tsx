@@ -5,6 +5,7 @@ import api from "../../services/api";
 import { backendAuthService } from "../../services/backendAuthService";
 import { roleEntry, type PepiRole } from "./roleRouting";
 import { AuthField, AuthShell } from "./AuthShell";
+import CustomerPhoneAuth from "./CustomerPhoneAuth";
 
 const errorText = (error: unknown) => (error as { response?: { data?: { detail?: string } }; message?: string }).response?.data?.detail || (error as Error).message || "Please try again.";
 type Role = Exclude<PepiRole, "admin">;
@@ -20,6 +21,7 @@ export function Registration() {
   async function verify(event: FormEvent) { event.preventDefault(); setBusy(true); setError(""); try { const result = await backendAuthService.verifyOTP(email, otp, role); navigate(roleEntry(result.user), { replace: true }); } catch (err) { setError(errorText(err)); } finally { setBusy(false); } }
   async function resend() { setError(""); try { await api.post("/auth/send-otp", { email }); setNotice("A new code has been sent."); } catch (err) { setError(errorText(err)); } }
   const headings = [["How will you use Pepi?", "Choose the account that matches what you want to do."], ["Tell us about you", "Use the name and phone number you want connected to your account."], ["Secure your account", "Choose your sign-in details. You can change them later."], ["Verify your email", `Enter the code sent to ${email}.`]];
+  if (role === "customer") return <CustomerPhoneAuth mode="signup"/>;
   return <AuthShell title={headings[step - 1][0]} copy={headings[step - 1][1]} step={step}>{notice && <p className="auth-notice">{notice}</p>}{error && <p role="alert" className="auth-error">{error}</p>}
     {step === 1 && <form className="auth-form" onSubmit={next}><div className="role-choices">{(Object.keys(roles) as Role[]).map(value => <button type="button" className={`role-choice ${role === value ? "selected" : ""}`} onClick={() => setRole(value)} key={value}><strong>{roles[value][0]}</strong><i/><p>{roles[value][1]}</p></button>)}</div><button className="auth-primary">Continue <ArrowRight/></button></form>}
     {step === 2 && <form className="auth-form" onSubmit={next}><div className="auth-grid"><AuthField label="First name"><div className="auth-control"><UserRound/><input autoComplete="given-name" value={first} onChange={e => setFirst(e.target.value)} required/></div></AuthField><AuthField label="Last name"><div className="auth-control"><UserRound/><input autoComplete="family-name" value={last} onChange={e => setLast(e.target.value)} required/></div></AuthField></div><AuthField label="Phone number" hint="Include your country code if you are outside Nigeria."><div className="auth-control"><Phone/><input type="tel" autoComplete="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="0800 000 0000" required/></div></AuthField><div className="auth-actions"><button type="button" className="auth-secondary" onClick={() => setStep(1)}><ArrowLeft/> Back</button><button className="auth-primary">Continue <ArrowRight/></button></div></form>}

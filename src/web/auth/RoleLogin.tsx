@@ -4,6 +4,7 @@ import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { backendAuthService as authService } from "../../services/backendAuthService";
 import { roleEntry, roleHome } from "./roleRouting";
 import { AuthField, AuthShell } from "./AuthShell";
+import CustomerPhoneAuth from "./CustomerPhoneAuth";
 
 export default function RoleLogin() {
   const navigate = useNavigate(); const location = useLocation(); const [params] = useSearchParams();
@@ -15,6 +16,7 @@ export default function RoleLogin() {
     catch (err) { setError(err instanceof Error ? err.message : "We could not sign you in. Check your details and try again."); }
     finally { setLoading(false); }
   }
+  if (signupRole === "customer") return <CustomerPhoneAuth/>;
   return <AuthShell mode="login" title="Welcome back" copy="Enter your details. We will take you to the right Pepi workspace.">
     <form className="auth-form" onSubmit={submit}>
       <AuthField label="Email address"><div className="auth-control"><Mail/><input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required/></div></AuthField>
