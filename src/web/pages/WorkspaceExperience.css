@@ -71,6 +71,7 @@
 .pepi-meal-card-footer { min-height: 48px; display: flex !important; align-items: center; justify-content: space-between; gap: 8px !important; margin-top: auto; padding: 8px 12px 12px !important; }
 .pepi-meal-card-footer button { min-width: 62px; min-height: 34px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 10px; border: 0; border-radius: 11px; color: #fff; background: #2d8c1f; font: inherit; font-size: 10px; font-weight: 800; cursor: pointer; }
 .pepi-meal-card-footer button.is-added { background: #1f6b14; }
+.pepi-meal-card-footer button:disabled { cursor: default; opacity: 1; }
 .pepi-meal-card-footer button span { overflow: hidden; max-width: 116px; text-overflow: ellipsis; white-space: nowrap; }
 
 .pepi-meal-detail-page { display: grid; gap: 24px; padding-bottom: 96px; color: #171a16; }
@@ -105,7 +106,7 @@
 .pepi-detail-stepper button, .pepi-addon-stepper button { width: 30px; height: 30px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 10px; color: #26771b; background: #fff; cursor: pointer; }
 .pepi-detail-stepper button:last-child, .pepi-addon-stepper button:last-child { color: #fff; background: #2d8c1f; }
 .pepi-detail-stepper strong { min-width: 18px; text-align: center; font-size: 12px; }
-.pepi-spice-range { width: 100%; margin-top: 14px; accent-color: #2d8c1f; }
+.pepi-spice-range { width: 100%; height: 34px; margin-top: 8px; cursor: pointer; }
 .pepi-spice-labels { display: flex; justify-content: space-between; color: #92998f; font-size: 8px; }
 .pepi-addon-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; margin-top: 13px; }
 .pepi-addon-grid article { min-width: 0; overflow: hidden; border: 1px solid #e5e9e3; border-radius: 15px; background: #fafcfa; }
@@ -124,11 +125,13 @@
 .pepi-meal-instructions small { color: #92998f; font-size: 8px; text-transform: uppercase; }
 .pepi-meal-instructions textarea { grid-column: 1/-1; min-height: 82px; margin-top: 7px; padding: 12px; resize: vertical; border: 1px solid #e2e7e0; border-radius: 13px; background: #f7f9f6; font: inherit; font-size: 11px; }
 .pepi-meal-schedule { display: grid; gap: 12px; }
-.pepi-meal-schedule > span { display: flex; align-items: center; gap: 9px; color: #26771b; }
-.pepi-meal-schedule > span > span { display: grid; gap: 2px; }
+.pepi-meal-schedule > label { display: flex; align-items: center; gap: 9px; color: #26771b; cursor: pointer; }
+.pepi-meal-schedule > label > span { display: grid; gap: 2px; }
 .pepi-meal-schedule strong { color: #20251f; font-size: 12px; }
 .pepi-meal-schedule small { color: #8b9289; font-size: 8px; }
 .pepi-meal-schedule input { min-height: 44px; padding: 0 11px; border: 1px solid #e2e7e0; border-radius: 12px; background: #f7f9f6; font: inherit; font-size: 10px; }
+.pepi-meal-schedule-control { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; }
+.pepi-meal-schedule-control button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 0 11px; border: 1px solid #ead9d7; border-radius: 12px; color: #9b332b; background: #fff7f6; font: inherit; font-size: 9px; font-weight: 800; cursor: pointer; }
 .pepi-meal-detail-notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; padding: 12px 14px; border-radius: 14px; color: #226d18; background: #eaf7e7; font-size: 10px; font-weight: 700; }
 .pepi-meal-detail-notice a { flex: none; color: inherit; font-weight: 850; }
 .pepi-related-meals { min-width: 0; display: grid; gap: 12px; }
@@ -147,6 +150,10 @@
 .pepi-meal-detail-bar strong { font-size: 15px; }
 .pepi-meal-detail-bar button { min-height: 45px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 17px; border: 0; border-radius: 13px; color: #fff; background: #2d8c1f; font: inherit; font-size: 11px; font-weight: 850; cursor: pointer; }
 .pepi-meal-detail-bar button:disabled { background: #aeb5ac; cursor: not-allowed; }
+.pepi-meal-detail-actions { min-width: 0; display: grid !important; grid-template-columns: auto minmax(132px,1fr); align-items: center; gap: 7px !important; }
+.pepi-meal-detail-actions > a { min-height: 45px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; border-radius: 13px; color: #26771b; text-align: center; text-decoration: none; font-size: 10px; font-weight: 850; }
+.pepi-meal-detail-actions > a:first-child { border: 1px solid #dce5da; background: #fff; }
+.pepi-meal-detail-actions > a.pepi-meal-cart-link { color: #fff; background: #2d8c1f; }
 .pepi-customer-kitchen { display: grid; gap: 20px; }
 .pepi-kitchen-hero { position: relative; min-height: 285px; display: flex; align-items: end; overflow: hidden; padding: 22px; border-radius: 27px; color: #fff; background: linear-gradient(145deg,#1f6b14,#2d8c1f); }
 .pepi-kitchen-hero > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
