@@ -32,6 +32,8 @@ export default function CustomerPhoneAuth({ mode = "signin" }: { mode?: "signin"
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [resendIn, setResendIn] = useState(0);
+  const [otpLength, setOtpLength] = useState(6);
 
   useEffect(() => {
     api.get<Country[]>("/location/countries").then(({ data }) => {
@@ -39,14 +41,40 @@ export default function CustomerPhoneAuth({ mode = "signin" }: { mode?: "signin"
     }).catch(() => undefined);
   }, []);
 
+  useEffect(() => {
+    if (stage !== "code" || resendIn <= 0) return;
+    const timer = window.setTimeout(() => setResendIn(value => Math.max(0, value - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [stage, resendIn]);
+
   async function requestCode(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError(""); setNotice("");
     try {
       const normalized = `${countryCode}${phone.replace(/\D/g, "").replace(/^0+/, "")}`;
       const response = await backendAuthService.startCustomerPhoneAuth(normalized, mode === "signup" ? email.trim() : undefined);
       localStorage.setItem("customerRememberedPhone", phone);
-      setFullPhone(normalized); setStage("code");
-      setNotice(response.email_sent ? `Enter the six-digit code sent to ${normalized} and your email.` : `Enter the six-digit code sent to ${normalized}.`);
+      setFullPhone(normalized); setStage("code"); setResendIn(60); setOtpLength(response.otp_length || 6);
+      setNotice(response.sms_sent ? `Enter the six-digit code sent by SMS to ${normalized}.` : `Enter the six-digit code sent to ${normalized}.`);
+    } catch (requestError) { setError(messageFor(requestError)); }
+    finally { setBusy(false); }
+  }
+
+  async function resendCode() {
+    if (busy || resendIn > 0) return;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const response = await backendAuthService.startCustomerPhoneAuth(fullPhone, mode === "signup" ? email.trim() : undefined);
+      setCode(""); setOtpLength(response.otp_length || 6); setResendIn(60); setNotice(`A new six-digit code was sent by SMS to ${fullPhone}.`);
+    } catch (requestError) { setError(messageFor(requestError)); }
+    finally { setBusy(false); }
+  }
+
+  async function requestVoiceCall() {
+    if (busy || resendIn > 0) return;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const response = await backendAuthService.startCustomerPhoneAuth(fullPhone, mode === "signup" ? email.trim() : undefined, "voice");
+      setCode(""); setOtpLength(response.otp_length || 4); setResendIn(60); setNotice(`We are calling ${fullPhone}. Enter the four-digit PIN you hear.`);
     } catch (requestError) { setError(messageFor(requestError)); }
     finally { setBusy(false); }
   }
@@ -72,8 +100,10 @@ export default function CustomerPhoneAuth({ mode = "signin" }: { mode?: "signin"
       <p className="auth-foot" style={{ margin: 0 }}>By continuing, you agree to the <Link to="/terms">Terms</Link> and <Link to="/privacy">Privacy Policy</Link>.</p>
       <button className="auth-primary" disabled={busy}>{busy ? "Sending code..." : "Continue"}<ArrowRight/></button>
     </form> : <form className="auth-form" onSubmit={verifyCode}>
-      <AuthField label="Verification code"><div className="auth-control"><input className="otp-input" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={code} onChange={event => setCode(event.target.value.replace(/\D/g, ""))} placeholder="000000" required/></div></AuthField>
-      <button className="auth-primary" disabled={busy || code.length !== 6}>{busy ? "Checking code..." : "Continue"}<ArrowRight/></button>
+      <AuthField label="Verification code"><div className="auth-control"><input className="otp-input" inputMode="numeric" autoComplete="one-time-code" pattern={`[0-9]{${otpLength}}`} maxLength={otpLength} value={code} onChange={event => setCode(event.target.value.replace(/\D/g, "").slice(0, otpLength))} placeholder={"0".repeat(otpLength)} required/></div></AuthField>
+      <button className="auth-primary" disabled={busy || code.length !== otpLength}>{busy ? "Checking code..." : "Continue"}<ArrowRight/></button>
+      <button className="auth-secondary" type="button" disabled={busy || resendIn > 0} onClick={() => void resendCode()}>{resendIn > 0 ? `Send again in ${resendIn}s` : "Send code again"}</button>
+      <button className="auth-secondary" type="button" disabled={busy || resendIn > 0} onClick={() => void requestVoiceCall()}>Call me instead</button>
       <button className="auth-secondary" type="button" onClick={() => { setStage("phone"); setCode(""); setError(""); }}><ArrowLeft/> Change phone number</button>
     </form>}
     <p className="auth-foot"><Link to="/customer/search">Browse meals without signing in</Link></p>

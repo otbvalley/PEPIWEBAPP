@@ -30,6 +30,14 @@ export default function ProtectedWorkspace({ role }: { role: Exclude<PepiRole, "
     confirm();
     return () => { active = false; };
   }, [role]);
+  useEffect(() => {
+    const updateSession = (event: Event) => {
+      const user = (event as CustomEvent<UserData>).detail;
+      if (user?.role === role) setState({ checking: false, user });
+    };
+    window.addEventListener("pepi-session-updated", updateSession);
+    return () => window.removeEventListener("pepi-session-updated", updateSession);
+  }, [role]);
   if (state.checking) return <div className="pepi-loading" role="status">Loading your workspace…</div>;
   if (!state.user) {
     const token = localStorage.getItem("authToken");
@@ -40,7 +48,7 @@ export default function ProtectedWorkspace({ role }: { role: Exclude<PepiRole, "
   const onboardingPath = `/${role}/onboarding`;
   const onboardingComplete = state.user.profile_completed === true && state.user.onboarding_completed === true;
   if (!onboardingComplete && location.pathname !== onboardingPath) {
-    return <Navigate to={`/${role}/onboarding`} replace />;
+    return <Navigate to={onboardingPath} replace state={{ from: location.pathname + location.search }} />;
   }
   if (onboardingComplete && location.pathname === onboardingPath) {
     return <Navigate to={roleHome(role)} replace />;
