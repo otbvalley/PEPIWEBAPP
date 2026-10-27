@@ -1,16 +1,21 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Bike, CalendarDays, Check, CheckCircle2, ChevronRight, Clock3, Compass, Heart, MapPin, Minus, PackageCheck, Plus, Search, ShoppingBag, Star, Store, TrendingUp, Truck, Utensils, WalletCards, X } from "lucide-react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { ArrowLeft, ArrowRight, Bike, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronRight, Clock3, Compass, Heart, MapPin, Minus, PackageCheck, Plus, Search, ShoppingBag, SlidersHorizontal, Star, Store, TrendingUp, Truck, Utensils, WalletCards, X } from "lucide-react";
 import api from "../../services/api";
 import { addToCart, getCart } from "../customer/cart";
 import { readStoredUser } from "../auth/roleRouting";
+import BroadcastBanner from "../components/BroadcastBanner";
 import "./WorkspaceExperience.css";
 
 type Meal = { id: string; vendor_id: string; name: string; price: number; image_url?: string; category?: string; description?: string; price_description?: string; preparation_time?: string; discount?: number; is_chef_special?: boolean; is_available?: boolean; in_stock?: boolean; inventory_quantity?: number; has_spicy_level?: boolean; has_addons?: boolean; allow_schedule_send?: boolean; delivery_option?: string; is_favorite?: boolean; addons?: { id: string; name: string; price: number; image_url?: string; max_quantity?: number }[]; vendor?: { business_name?: string } };
-type Kitchen = { id: string; business_name: string; logo_url?: string; cover_image_url?: string; business_description?: string; business_address?: string; rating?: number | string; min_preparation_time?: number; minimum_order?: number; delivery_option?: string; is_open?: boolean; temporarily_closed?: boolean };
+type Kitchen = { id: string; user_id?: string; business_name: string; business_phone?: string; phone?: string; logo_url?: string; cover_image_url?: string; business_description?: string; business_address?: string; rating?: number | string; rating_count?: number; min_preparation_time?: number; minimum_order?: number; delivery_option?: string; is_open?: boolean; temporarily_closed?: boolean };
 type HomeSection = { key: string; title: string; items: Meal[] };
 type HomeData = { categories: string[]; top_items: Meal[]; all_kitchens: Kitchen[]; sections?: HomeSection[] };
 type CustomerHomeOrder = { id: string; status: string; restaurant_name?: string; total_amount?: number; created_at?: string; items_count?: number; estimated_delivery_time?: string };
+type HomeAddress = { id: string; address: string; address_name?: string; latitude?: string; longitude?: string; is_default: boolean };
+type ReviewSummary = { average_rating: number; total_reviews: number; reviews: { id: string; rating: number; comment?: string; created_at?: string; user_name?: string; user_initial?: string }[] };
+type SearchSort = "newest" | "best_selling" | "most_ordered" | "price_low" | "price_high" | "discount" | "near_me" | "rating";
+const RECENT_MEALS_KEY = "pepi-recent-meals";
 
 function useLoad<T>(url: string) {
   const [data, setData] = useState<T | null>(null);
@@ -52,7 +57,18 @@ function spicyColor(value: number) {
 }
 function MealCard({ item }: { item: Meal }) {
   const [cartMessage, setCartMessage] = useState("");
+  const [favorite, setFavorite] = useState(Boolean(item.is_favorite));
+  const navigate = useNavigate();
   const cartQuantity = useMealCartQuantity(item.id);
+  useEffect(() => { setFavorite(Boolean(item.is_favorite)); }, [item.is_favorite]);
+  async function toggleFavorite() {
+    if (!localStorage.getItem("authToken")) { navigate(`/signin?role=customer&next=${encodeURIComponent(location.pathname + location.search)}`); return; }
+    try {
+      if (favorite) await api.delete(`/customer/meal-favorites/${item.id}`);
+      else await api.post("/customer/meal-favorites", { menu_item_id: item.id });
+      setFavorite(value => !value);
+    } catch { setCartMessage("Could not update favorite"); window.setTimeout(() => setCartMessage(""), 2200); }
+  }
   const addMeal = () => {
     const added = addToCart({ id: item.id, originalId: item.id, vendor_id: item.vendor_id, vendor_name: item.vendor?.business_name, name: item.name, price: Number(item.price), quantity: 1, image_url: item.image_url });
     setCartMessage(added ? "Added" : "Finish your current cart first");
@@ -71,6 +87,7 @@ function MealCard({ item }: { item: Meal }) {
         <span className="pepi-meal-meta">{item.category && <span>{item.category}</span>}{item.preparation_time && <span><Clock3 size={12}/>{item.preparation_time}</span>}</span>
       </div>
     </Link>
+    <button type="button" className={`pepi-meal-favorite ${favorite ? "is-favorite" : ""}`} aria-label={favorite ? `Remove ${item.name} from favorites` : `Save ${item.name} to favorites`} onClick={() => void toggleFavorite()}><Heart size={16} fill={favorite ? "currentColor" : "none"}/></button>
     <div className="pepi-meal-card-footer">
       <strong>₦{Number(item.price).toLocaleString("en-NG")}</strong>
       <button type="button" onClick={addMeal} aria-label={cartQuantity ? `${item.name} is in cart` : `Add ${item.name} to cart`} className={cartQuantity ? "is-added" : ""} disabled={Boolean(cartQuantity)}>{cartQuantity ? <Check size={15}/> : <Plus size={15}/>}<span>{cartQuantity ? `In cart (${cartQuantity})` : cartMessage || "Add"}</span></button>
@@ -78,8 +95,17 @@ function MealCard({ item }: { item: Meal }) {
   </article>;
 }
 export function CustomerHome() {
-  const { data, loading, error, retry } = useLoad<HomeData>("/customer/home/v2");
+  const [addresses, setAddresses] = useState<HomeAddress[]>([]);
+  const [addressId, setAddressId] = useState("");
+  const [recentMeals, setRecentMeals] = useState<Meal[]>([]);
+  const selectedAddress = addresses.find(item => item.id === addressId) || addresses.find(item => item.is_default) || addresses[0];
+  const homeQuery = selectedAddress ? `?address=${encodeURIComponent(selectedAddress.address)}${selectedAddress.latitude ? `&lat=${encodeURIComponent(selectedAddress.latitude)}` : ""}${selectedAddress.longitude ? `&lng=${encodeURIComponent(selectedAddress.longitude)}` : ""}` : "";
+  const { data, loading, error, retry } = useLoad<HomeData>(`/customer/home/v2${homeQuery}`);
   const { data: orders, loading: ordersLoading, error: ordersError, retry: retryOrders } = useLoad<CustomerHomeOrder[]>("/orders/");
+  useEffect(() => {
+    api.get<HomeAddress[]>("/customer/addresses").then(({ data: result }) => { setAddresses(result || []); const preferred = result.find(item => item.is_default) || result[0]; if (preferred) setAddressId(preferred.id); }).catch(() => undefined);
+    try { setRecentMeals(JSON.parse(localStorage.getItem(RECENT_MEALS_KEY) || "[]")); } catch { setRecentMeals([]); }
+  }, []);
   const categories = data?.categories?.slice(0, 8) || [];
   const activeStatuses = new Set(["scheduled", "pending", "accepted", "preparing", "ready", "picked_up"]);
   const activeOrders = (orders || []).filter(order => activeStatuses.has(order.status));
@@ -88,6 +114,8 @@ export function CustomerHome() {
     ? data.sections
     : data?.top_items?.length ? [{ key: "popular", title: "Popular right now", items: data.top_items }] : [];
   return <div className="pepi-workspace-page pepi-customer-dashboard">
+    <BroadcastBanner appName="customer"/>
+    <div className="pepi-delivery-location"><span><MapPin size={18}/></span><label><small>Delivering to</small>{addresses.length ? <select value={selectedAddress?.id || ""} onChange={event => setAddressId(event.target.value)}>{addresses.map(item => <option value={item.id} key={item.id}>{item.address_name || item.address}</option>)}</select> : <Link to="/customer/addresses">Add a delivery address</Link>}</label><Link to="/customer/addresses">Manage</Link></div>
     <section className="pepi-customer-hero">
       <div><span className="pepi-hero-kicker"><MapPin size={15}/> Delivery near you</span><h2>Good food, right when you want it.</h2><p>Find trusted kitchens nearby and get your order moving in a few taps.</p><Link to="/customer/search" className="pepi-search-cta"><Search size={19}/><span>Search meals and kitchens</span><ArrowRight size={17}/></Link></div>
       <div className="pepi-hero-visual" aria-hidden="true"><span><Utensils size={42}/></span><i/><b/></div>
@@ -96,6 +124,7 @@ export function CustomerHome() {
     {data && <>
       {latestOrder && <section className="pepi-dashboard-card pepi-orders-preview"><div className="pepi-card-heading"><div><h3>{activeOrders.length ? "Your active order" : "Your latest order"}</h3><p>{activeOrders.length ? "Track your food from the kitchen to your door" : "Order details from your account"}</p></div><Link to="/customer/orders">View all <ChevronRight size={15}/></Link></div><Link to={`/customer/orders?orderId=${encodeURIComponent(latestOrder.id)}`} className="pepi-operation-row"><span className="pepi-order-avatar"><ShoppingBag size={17}/></span><span className="pepi-operation-copy"><strong>{latestOrder.restaurant_name || "Your order"}</strong><small>#{latestOrder.id.slice(0, 8).toUpperCase()} · {latestOrder.items_count || 0} item{latestOrder.items_count === 1 ? "" : "s"}{latestOrder.estimated_delivery_time ? ` · ${latestOrder.estimated_delivery_time}` : ""}</small></span><span className={`pepi-status-badge status-${latestOrder.status}`}>{friendlyStatus(latestOrder.status)}</span><strong>{formatMoney(latestOrder.total_amount)}</strong></Link></section>}
       {categories.length > 0 && <section className="pepi-dashboard-section pepi-category-section"><div className="pepi-section-heading"><div><h2>Browse by category</h2><p>Start with what sounds good</p></div></div><div className="pepi-category-row">{categories.map((name, index) => <Link to={`/customer/search?category=${encodeURIComponent(name)}`} key={name}><span>{index % 2 ? <Store size={19}/> : <Utensils size={19}/>}</span>{name}</Link>)}</div></section>}
+      {recentMeals.length > 0 && <section className="pepi-dashboard-section"><div className="pepi-section-heading"><div><h2>Recently viewed</h2><p>Pick up where you left off</p></div></div><div className="pepi-product-grid">{recentMeals.slice(0, 4).map(item => <MealCard key={item.id} item={item}/>)}</div></section>}
       <section className="pepi-dashboard-section"><div className="pepi-section-heading"><div><h2>Kitchens near you</h2><p>Open kitchens ready to prepare your order</p></div><Link to="/customer/search">View all <ChevronRight size={16}/></Link></div><div className="pepi-kitchen-rail">{data.all_kitchens.slice(0, 6).map(k => <Link className="pepi-kitchen-card" to={`/customer/kitchen/${k.id}`} key={k.id}><div className="pepi-kitchen-image">{k.logo_url ? <img src={k.logo_url} alt="" loading="lazy"/> : <Store size={30}/>}<span>Open</span></div><div><h3>{k.business_name}</h3><p><span><Star size={13} fill="currentColor"/> {k.rating || "New"}</span><span><Clock3 size={13}/> {k.min_preparation_time || 15} min</span></p></div></Link>)}</div>{data.all_kitchens.length === 0 && <EmptyState title="No kitchens are open" text="Check back shortly for kitchens near you."/>}</section>
       {discoverySections.map(section => <section className="pepi-dashboard-section" key={section.key}><div className="pepi-section-heading"><div><h2>{section.title}</h2><p>{section.key === "order_again" ? "From your completed orders" : "Based on real orders and available menus"}</p></div><Link to="/customer/search">See more <ChevronRight size={16}/></Link></div><div className="pepi-product-grid">{section.items.slice(0, 8).map(item => <MealCard key={item.id} item={item}/>)}</div></section>)}
       {discoverySections.length === 0 && <section className="pepi-dashboard-section"><EmptyState title="Meals are coming soon" text="New menu items will appear here as kitchens open."/></section>}
@@ -103,7 +132,9 @@ export function CustomerHome() {
   </div>;
 }
 export function CustomerSearch() {
-  const [query, setQuery] = useState(""); const [category, setCategory] = useState("All");
+  const [params] = useSearchParams();
+  const [query, setQuery] = useState(() => params.get("q") || ""); const [category, setCategory] = useState(() => params.get("category") || "All");
+  const [sort, setSort] = useState<SearchSort>("best_selling"); const [priceRange, setPriceRange] = useState("all"); const [dealsOnly, setDealsOnly] = useState(false); const [filtersOpen, setFiltersOpen] = useState(false); const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null); const [locationError, setLocationError] = useState("");
   const [categories, setCategories] = useState<string[]>(["All"]);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [offset, setOffset] = useState(0); const [hasMore, setHasMore] = useState(false);
@@ -113,16 +144,22 @@ export function CustomerSearch() {
   const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [attempt, setAttempt] = useState(0);
   useEffect(() => { api.get<string[]>("/menu/categories").then(({ data }) => setCategories(["All", ...data])).catch(() => {}); }, []);
   useEffect(() => {
+    if (sort !== "near_me" || position) return;
+    if (!navigator.geolocation) { setLocationError("Location is not available in this browser."); setSort("best_selling"); return; }
+    navigator.geolocation.getCurrentPosition(value => { setPosition({ lat: value.coords.latitude, lng: value.coords.longitude }); setLocationError(""); }, () => { setLocationError("Allow location access to sort meals near you."); setSort("best_selling"); }, { enableHighAccuracy: true });
+  }, [sort, position]);
+  useEffect(() => {
     let active = true;
     const timer = window.setTimeout(() => {
       setLoading(true); setError("");
-      api.get<Meal[]>("/menu/", { params: { customer_visible_only: true, item_type: "meal", limit: 24, offset, ...(query.trim() ? { search: query.trim() } : {}), ...(category !== "All" ? { category } : {}) } })
+      const prices = priceRange === "under_2000" ? { max_price: 2000 } : priceRange === "2000_5000" ? { min_price: 2000, max_price: 5000 } : priceRange === "over_5000" ? { min_price: 5000 } : {};
+      api.get<Meal[]>("/menu/", { params: { customer_visible_only: true, item_type: "meal", limit: 24, offset, sort, deals_only: dealsOnly, ...prices, ...(position || {}), ...(query.trim() ? { search: query.trim() } : {}), ...(category !== "All" ? { category } : {}) } })
         .then(({ data }) => { if (active) { setMeals(previous => offset ? [...previous, ...data] : data); setHasMore(data.length === 24); } })
         .catch(() => { if (active) setError("We couldn't load meals. Please try again."); })
         .finally(() => { if (active) setLoading(false); });
     }, query ? 300 : 0);
     return () => { active = false; window.clearTimeout(timer); };
-  }, [query, category, offset, attempt]);
+  }, [query, category, offset, attempt, sort, priceRange, dealsOnly, position]);
   useEffect(() => {
     let active = true;
     const timer = window.setTimeout(() => {
@@ -134,7 +171,8 @@ export function CustomerSearch() {
   }, [query, kitchenOffset, attempt]);
   const updateQuery = (value: string) => { setQuery(value); setOffset(0); setKitchenOffset(0); setMeals([]); setKitchens([]); };
   const updateCategory = (value: string) => { setCategory(value); setOffset(0); setMeals([]); };
-  return <><div className="pepi-page-heading"><div><p className="pepi-eyebrow">Discover</p><h2>Find your next meal</h2></div></div><label className="pepi-search-label">Search meals and kitchens<input value={query} onChange={e => updateQuery(e.target.value)} placeholder="What are you craving?" /></label><section className="pepi-section"><h3>Kitchens</h3>{kitchenError && <p role="alert">{kitchenError} <button onClick={() => setAttempt(value => value + 1)}>Retry</button></p>}<div className="pepi-grid">{kitchens.map(kitchen => <Link className="pepi-info-card pepi-kitchen-card" to={`/customer/kitchen/${kitchen.id}`} key={kitchen.id}>{kitchen.logo_url && <img src={kitchen.logo_url} alt="" loading="lazy" />}<h3>{kitchen.business_name}</h3><p><Star size={14}/> {kitchen.rating || "New"} · {kitchen.min_preparation_time || 15} min</p></Link>)}</div>{moreKitchens && <button onClick={() => setKitchenOffset(value => value + 12)}>Load more kitchens</button>}</section><section className="pepi-section"><h3>Meals</h3><div className="pepi-filter-row">{categories.map(name => <button className={category === name ? "selected" : ""} key={name} onClick={() => updateCategory(name)}>{name}</button>)}</div><LoadState loading={loading && !meals.length} error={error} retry={() => setAttempt(value => value + 1)}/><div className="pepi-grid">{meals.map(item => <MealCard key={item.id} item={item}/>)}</div>{!loading && !error && meals.length === 0 && <p>No meals found. Try another search.</p>}{hasMore && <button onClick={() => setOffset(value => value + 24)} disabled={loading}>Load more meals</button>}</section></>;
+  const resetFilters = () => { setSort("best_selling"); setPriceRange("all"); setDealsOnly(false); setPosition(null); setOffset(0); setMeals([]); };
+  return <><div className="pepi-page-heading"><div><p className="pepi-eyebrow">Discover</p><h2>Find your next meal</h2></div></div><div className="pepi-search-tools"><label className="pepi-search-label">Search meals and kitchens<input value={query} onChange={e => updateQuery(e.target.value)} placeholder="What are you craving?" /></label><button className={filtersOpen ? "active" : ""} onClick={() => setFiltersOpen(value => !value)}><SlidersHorizontal size={17}/>Filters<ChevronDown size={15}/></button></div>{filtersOpen && <section className="pepi-search-filters"><label>Sort by<select value={sort} onChange={event => { setSort(event.target.value as SearchSort); setOffset(0); setMeals([]); }}><option value="best_selling">Best selling</option><option value="most_ordered">Most ordered</option><option value="newest">Newest</option><option value="rating">Top rated</option><option value="near_me">Near me</option><option value="price_low">Price: low to high</option><option value="price_high">Price: high to low</option><option value="discount">Biggest discount</option></select></label><label>Price range<select value={priceRange} onChange={event => { setPriceRange(event.target.value); setOffset(0); setMeals([]); }}><option value="all">All prices</option><option value="under_2000">Under ₦2,000</option><option value="2000_5000">₦2,000 to ₦5,000</option><option value="over_5000">Over ₦5,000</option></select></label><label className="pepi-filter-check"><input type="checkbox" checked={dealsOnly} onChange={event => { setDealsOnly(event.target.checked); setOffset(0); setMeals([]); }}/><span>Deals and chef specials</span></label><button type="button" onClick={resetFilters}>Reset filters</button></section>}{locationError && <p className="pepi-inline-error" role="alert">{locationError}</p>}<section className="pepi-section"><h3>Kitchens</h3>{kitchenError && <p role="alert">{kitchenError} <button className="pepi-text-action" onClick={() => setAttempt(value => value + 1)}>Retry</button></p>}<div className="pepi-grid">{kitchens.map(kitchen => <Link className="pepi-info-card pepi-kitchen-card" to={`/customer/kitchen/${kitchen.id}`} key={kitchen.id}>{kitchen.logo_url && <img src={kitchen.logo_url} alt="" loading="lazy" />}<h3>{kitchen.business_name}</h3><p><Star size={14}/> {kitchen.rating || "New"} · {kitchen.min_preparation_time || 15} min</p></Link>)}</div>{moreKitchens && <button className="pepi-load-more" onClick={() => setKitchenOffset(value => value + 12)}>Load more kitchens</button>}</section><section className="pepi-section"><h3>Meals</h3><div className="pepi-filter-row">{categories.map(name => <button className={category === name ? "selected" : ""} key={name} onClick={() => updateCategory(name)}>{name}</button>)}</div><LoadState loading={loading && !meals.length} error={error} retry={() => setAttempt(value => value + 1)}/><div className="pepi-product-grid">{meals.map(item => <MealCard key={item.id} item={item}/>)}</div>{!loading && !error && meals.length === 0 && <p>No meals found. Try another search.</p>}{hasMore && <button className="pepi-load-more" onClick={() => setOffset(value => value + 24)} disabled={loading}>{loading ? "Loading meals" : "Load more meals"}</button>}</section></>;
 }
 
 type SelectedAddon = NonNullable<Meal["addons"]>[number] & { quantity: number };
@@ -152,6 +190,7 @@ export function CustomerMealDetail() {
   const [favorite, setFavorite] = useState<boolean | null>(null);
   const cartQuantity = useMealCartQuantity(id);
   useEffect(() => { if (item) setFavorite(Boolean(item.is_favorite)); }, [item]);
+  useEffect(() => { if (!item) return; try { const current = JSON.parse(localStorage.getItem(RECENT_MEALS_KEY) || "[]") as Meal[]; localStorage.setItem(RECENT_MEALS_KEY, JSON.stringify([item, ...current.filter(meal => meal.id !== item.id)].slice(0, 10))); } catch { /* Ignore unavailable storage. */ } }, [item]);
   const discountedPrice = item ? Number(item.price) * (1 - Number(item.discount || 0) / 100) : 0;
   const addonsTotal = selectedAddons.reduce((sum, addon) => sum + Number(addon.price) * addon.quantity, 0);
   const unitTotal = discountedPrice + addonsTotal;
@@ -206,12 +245,13 @@ export function CustomerKitchen() {
   const [category, setCategory] = useState("All");
   const { data: vendor, loading: vendorLoading, error: vendorError, retry: retryVendor } = useLoad<Kitchen>(`/vendors/${id}`);
   const { data: items, loading: itemsLoading, error: itemsError, retry: retryItems } = useLoad<Meal[]>(`/menu/?vendor_id=${id}&customer_visible_only=true&item_type=meal`);
+  const { data: reviews, loading: reviewsLoading, error: reviewsError, retry: retryReviews } = useLoad<ReviewSummary>(`/vendors/${id}/public-reviews`);
   const categories = ["All", ...Array.from(new Set((items || []).map(item => item.category).filter(Boolean) as string[]))];
   const shown = (items || []).filter(item => (category === "All" || item.category === category) && `${item.name} ${item.description || ""}`.toLowerCase().includes(query.toLowerCase()));
   const open = Boolean(vendor?.is_open !== false && !vendor?.temporarily_closed);
   return <div className="pepi-customer-kitchen">
-    <LoadState loading={vendorLoading || itemsLoading} error={vendorError || itemsError} retry={() => { retryVendor(); retryItems(); }}/>
-    {vendor && <><section className="pepi-kitchen-hero">{vendor.cover_image_url && <img src={vendor.cover_image_url} alt=""/>}<div className="pepi-kitchen-hero-overlay"/><Link to="/customer/search" aria-label="Back to search"><ArrowLeft size={19}/></Link><div className="pepi-kitchen-identity">{vendor.logo_url ? <img src={vendor.logo_url} alt=""/> : <span><Store size={27}/></span>}<div><span className={open ? "open" : "closed"}>{open ? "Open now" : "Closed"}</span><h1>{vendor.business_name}</h1><p>{vendor.business_description || "Fresh meals prepared for pickup and delivery."}</p></div></div></section><div className="pepi-kitchen-facts"><span><Star size={15} fill="currentColor"/>{vendor.rating || "New"} rating</span><span><Clock3 size={15}/>{vendor.min_preparation_time || 15} min</span>{vendor.minimum_order ? <span><ShoppingBag size={15}/>₦{Number(vendor.minimum_order).toLocaleString("en-NG")} minimum</span> : null}{vendor.business_address && <span><MapPin size={15}/>{vendor.business_address}</span>}</div><section className="pepi-kitchen-menu"><div className="pepi-kitchen-menu-heading"><div><h2>Menu</h2><p>{shown.length} meal{shown.length === 1 ? "" : "s"} available</p></div><label><Search size={17}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search this kitchen"/></label></div><div className="pepi-filter-row">{categories.map(value => <button className={category === value ? "selected" : ""} onClick={() => setCategory(value)} key={value}>{value}</button>)}</div><div className="pepi-product-grid">{shown.map(item => <MealCard item={item} key={item.id}/>)}</div>{!shown.length && <EmptyState title="No matching meals" text="Try another search or category."/>}</section></>}
+    <LoadState loading={vendorLoading || itemsLoading || reviewsLoading} error={vendorError || itemsError || reviewsError} retry={() => { retryVendor(); retryItems(); retryReviews(); }}/>
+    {vendor && <><section className="pepi-kitchen-hero">{vendor.cover_image_url && <img src={vendor.cover_image_url} alt=""/>}<div className="pepi-kitchen-hero-overlay"/><Link to="/customer/search" aria-label="Back to search"><ArrowLeft size={19}/></Link><div className="pepi-kitchen-identity">{vendor.logo_url ? <img src={vendor.logo_url} alt=""/> : <span><Store size={27}/></span>}<div><span className={open ? "open" : "closed"}>{open ? "Open now" : "Closed"}</span><h1>{vendor.business_name}</h1><p>{vendor.business_description || "Fresh meals prepared for pickup and delivery."}</p></div></div></section><div className="pepi-kitchen-facts"><span><Star size={15} fill="currentColor"/>{reviews?.average_rating || vendor.rating || "New"} rating ({reviews?.total_reviews || vendor.rating_count || 0})</span><span><Clock3 size={15}/>{vendor.min_preparation_time || 15} min</span>{vendor.minimum_order ? <span><ShoppingBag size={15}/>₦{Number(vendor.minimum_order).toLocaleString("en-NG")} minimum</span> : null}{vendor.business_address && <span><MapPin size={15}/>{vendor.business_address}</span>}</div>{(vendor.business_phone || vendor.phone || vendor.user_id) && <div className="pepi-kitchen-contact">{(vendor.business_phone || vendor.phone) && <a href={`tel:${vendor.business_phone || vendor.phone}`}>Call kitchen</a>}{vendor.user_id && <Link to={`/customer/messages?recipientId=${encodeURIComponent(vendor.user_id)}`}>Message kitchen</Link>}</div>}<section className="pepi-kitchen-menu"><div className="pepi-kitchen-menu-heading"><div><h2>Menu</h2><p>{shown.length} meal{shown.length === 1 ? "" : "s"} available</p></div><label><Search size={17}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search this kitchen"/></label></div><div className="pepi-filter-row">{categories.map(value => <button className={category === value ? "selected" : ""} onClick={() => setCategory(value)} key={value}>{value}</button>)}</div><div className="pepi-product-grid">{shown.map(item => <MealCard item={item} key={item.id}/>)}</div>{!shown.length && <EmptyState title="No matching meals" text="Try another search or category."/>}</section>{reviews && <section className="pepi-kitchen-reviews"><div className="pepi-section-heading"><div><h2>Customer reviews</h2><p>{reviews.total_reviews ? `${reviews.average_rating.toFixed(1)} from ${reviews.total_reviews} reviews` : "No reviews yet"}</p></div></div><div>{reviews.reviews.slice(0, 6).map(review => <article key={review.id}><span>{review.user_initial || "U"}</span><div><strong>{review.user_name || "Customer"}</strong><small>{"★".repeat(review.rating)}{"☆".repeat(Math.max(0, 5 - review.rating))}{review.created_at ? ` · ${new Date(review.created_at).toLocaleDateString("en-NG")}` : ""}</small><p>{review.comment || "No written comment."}</p></div></article>)}</div></section>}</>}
   </div>;
 }
 type WorkspaceOrder = { id: string; status: string; customer_name?: string; restaurant_name?: string; total_amount?: number; created_at?: string; delivery_address?: string; items_count?: number };
@@ -235,6 +275,7 @@ export function VendorDashboard() {
   const pendingOrders = activeOrders.filter(order => ["scheduled", "pending"].includes(order.status));
   const maxPopular = Math.max(...(data?.popular_items || []).map(item => item.order_count), 1);
   return <div className="pepi-workspace-page">
+    <BroadcastBanner appName="vendor"/>
     <div className="pepi-dashboard-heading"><div><h2>Keep your kitchen moving</h2><p>Orders, menu performance, and customer feedback in one view.</p></div><div className="pepi-heading-actions"><Link to="/vendor/orders" className="pepi-secondary-action">View orders</Link><Link to="/vendor/menu" className="pepi-primary inline">Manage menu <ArrowRight size={17}/></Link></div></div>
     <LoadState loading={loading || profileLoading || ordersLoading} error={error || profileError || ordersError} retry={() => { retry(); retryProfile(); retryOrders(); }}/>
     {data && profile && <>

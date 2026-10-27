@@ -25,12 +25,13 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Terms from "./pages/Terms";
 import AccountDeletion from "./pages/AccountDeletion";
 import CustomerBrowseAccess from "./web/customer/CustomerBrowseAccess";
+import RouteLoading from "./web/components/RouteLoading";
 
 const AdminDashboard = lazy(() => import("./admin/dashboard/AdminDashboard"));
 const AdminLogin = lazy(() => import("./admin/login/AdminLogin"));
 
 export default function AppRoutes() {
-  return <Suspense fallback={<div className="pepi-loading" role="status">Loading…</div>}><Routes>
+  return <Suspense fallback={<RouteLoading />}><Routes>
     <Route path="/" element={<Landing />} />
     <Route path="/vendors" element={<PartnerLanding role="vendor" />} />
     <Route path="/riders" element={<PartnerLanding role="rider" />} />

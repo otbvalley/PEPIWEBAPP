@@ -3,6 +3,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import api, { refreshRoleSession } from "../../services/api";
 import { decodeJwtToken, type UserData } from "../../services/backendAuthService";
 import WebShell from "../components/WebShell";
+import RouteLoading from "../components/RouteLoading";
 import { roleHome, type PepiRole } from "./roleRouting";
 
 export default function ProtectedWorkspace({ role }: { role: Exclude<PepiRole, "admin"> }) {
@@ -38,7 +39,7 @@ export default function ProtectedWorkspace({ role }: { role: Exclude<PepiRole, "
     window.addEventListener("pepi-session-updated", updateSession);
     return () => window.removeEventListener("pepi-session-updated", updateSession);
   }, [role]);
-  if (state.checking) return <div className="pepi-loading" role="status">Loading your workspace…</div>;
+  if (state.checking) return <RouteLoading />;
   if (!state.user) {
     const token = localStorage.getItem("authToken");
     const claims = token ? decodeJwtToken(token) : null;

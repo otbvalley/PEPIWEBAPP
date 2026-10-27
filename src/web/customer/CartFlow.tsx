@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowRight, Minus, Plus, ShoppingBag, Trash2, Utensils } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2, CircleAlert, LoaderCircle, Minus, Plus, ReceiptText, ShieldCheck, ShoppingBag, Trash2, Utensils } from "lucide-react";
 import api from "../../services/api";
 import { getCart, saveCart } from "./cart";
 import type { SavedAddress } from "./Addresses";
@@ -117,5 +117,39 @@ export function CustomerPaymentVerify() {
     complete();
     return () => { active = false; };
   }, [reference]);
-  return <div className="pepi-panel" role="status">{state === "checking" ? <p>Verifying your payment and placing your order…</p> : state === "success" ? <><h2>Order placed</h2><p>Your order is on its way to the kitchen.</p><p>Order ID: {orderId}</p><Link to="/customer/orders">View orders</Link></> : <><h2>We couldn't complete your order</h2><p>{message}</p><p>Payment reference: {reference || "unavailable"}</p>{reference && <button onClick={() => window.location.reload()}>Retry placing order</button>}<Link to="/customer/support">Contact support</Link></>}</div>;
+  const content = state === "checking" ? {
+    eyebrow: "Secure payment",
+    title: "Confirming your payment",
+    description: "Please keep this page open while we confirm your payment and create your order.",
+    icon: <LoaderCircle size={34}/>,
+  } : state === "success" ? {
+    eyebrow: "Payment confirmed",
+    title: "Your order is placed",
+    description: "The kitchen has received your order. You can follow every update from your orders page.",
+    icon: <CheckCircle2 size={36}/>,
+  } : {
+    eyebrow: "Payment needs attention",
+    title: "We could not complete your order",
+    description: message || "Your payment could not be confirmed. Retry before starting another payment.",
+    icon: <CircleAlert size={36}/>,
+  };
+  return <main className={`pepi-payment-verify is-${state}`} aria-live="polite" aria-busy={state === "checking"}>
+    <section className="pepi-payment-card">
+      <div className="pepi-payment-icon" aria-hidden="true">{content.icon}</div>
+      <p className="pepi-payment-eyebrow">{content.eyebrow}</p>
+      <h2>{content.title}</h2>
+      <p className="pepi-payment-description">{content.description}</p>
+      <div className="pepi-payment-progress" aria-label="Order progress">
+        <div className={state !== "failed" ? "complete" : "failed"}><span>{state === "failed" ? "!" : <Check size={13}/>}</span><p><strong>Payment confirmation</strong><small>{state === "checking" ? "Checking with our payment partner" : state === "success" ? "Payment securely confirmed" : "Confirmation was not completed"}</small></p></div>
+        <div className={state === "success" ? "complete" : state === "checking" ? "current" : "pending"}><span>{state === "success" ? <Check size={13}/> : "2"}</span><p><strong>Create your order</strong><small>{state === "success" ? "Order sent to the kitchen" : "Starts after payment confirmation"}</small></p></div>
+      </div>
+      {(reference || orderId) && <dl className="pepi-payment-details">
+        {orderId && <div><dt><ReceiptText size={15}/>Order ID</dt><dd>{orderId}</dd></div>}
+        {reference && <div><dt><ShieldCheck size={15}/>Payment reference</dt><dd>{reference}</dd></div>}
+      </dl>}
+      {state === "checking" && <p className="pepi-payment-note"><ShieldCheck size={15}/>Your payment details are handled securely.</p>}
+      {state === "success" && <div className="pepi-payment-actions"><Link className="pepi-primary" to={`/customer/orders/${orderId}`}>Track your order <ArrowRight size={17}/></Link><Link className="pepi-payment-secondary" to="/customer/orders">View all orders</Link></div>}
+      {state === "failed" && <div className="pepi-payment-actions">{reference && <button className="pepi-primary" onClick={() => window.location.reload()}>Try verification again</button>}<Link className="pepi-payment-secondary" to="/customer/support">Contact support</Link></div>}
+    </section>
+  </main>;
 }
