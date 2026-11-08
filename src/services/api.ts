@@ -4,7 +4,7 @@
 import axios, { type AxiosError } from "axios";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
-  || (import.meta.env.DEV ? "http://localhost:8000/api" : "https://pickeatpickitbe.onrender.com/api");
+  || (import.meta.env.DEV ? "http://localhost:8000/api" : "https://api.pepi.otbvalley.com.ng/api");
 
 const api = axios.create({
   baseURL: API_BASE_URL,

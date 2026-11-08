@@ -17,6 +17,7 @@ import {
   ShoppingBag,
   Store,
   Truck,
+  UserX,
   UserRoundCog,
   Users,
   X,
@@ -36,12 +37,14 @@ import AccountSettings, { type AdminProfile } from "../page/AccountSettings";
 import OperationsAttention from "../page/OperationsAttention";
 import SupportTickets from "../page/SupportTickets";
 import AdminNotificationBell from "../components/AdminNotificationBell";
+import AccountDeletions from "../page/AccountDeletions";
 
 type Section =
   | "overview"
   | "approvals"
   | "orders"
   | "customers"
+  | "deletions"
   | "vendors"
   | "riders"
   | "finance"
@@ -61,6 +64,7 @@ const navItems: NavItem[] = [
   { id: "approvals", label: "Approvals", icon: <CheckSquare size={19} />, permission: "approvals.manage" },
   { id: "orders", label: "Orders", icon: <ShoppingBag size={19} />, permission: "orders.manage" },
   { id: "customers", label: "Customers", icon: <Users size={19} />, permission: "customers.manage" },
+  { id: "deletions", label: "Account deletions", icon: <UserX size={19} />, permission: "customers.manage" },
   { id: "vendors", label: "Vendors", icon: <Store size={19} />, permission: "vendors.manage" },
   { id: "riders", label: "Riders", icon: <Truck size={19} />, permission: "riders.manage" },
   { id: "finance", label: "Finance", icon: <CircleDollarSign size={19} />, permission: "finance.manage" },
@@ -106,6 +110,7 @@ export default function AdminDashboard() {
     approvals: <Approvals />,
     orders: <OrderManagement key={`${orderDrill.status || "all"}-${orderDrill.period || "all"}-${orderDrill.search || "all"}`} initialStatus={orderDrill.status} initialPeriod={orderDrill.period} initialSearch={orderDrill.search} />,
     customers: <UserManagement />,
+    deletions: <AccountDeletions />,
     vendors: <Partners kind="vendor" />,
     riders: <Partners kind="rider" />,
     finance: <Transaction />,
