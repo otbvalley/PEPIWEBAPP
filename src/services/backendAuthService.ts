@@ -12,6 +12,7 @@ export interface UserData {
   rider_id?: string;
   profile_completed?: boolean;
   onboarding_completed?: boolean;
+  source_context?: "admin";
 }
 
 export interface JwtPayload {
@@ -28,6 +29,7 @@ export interface JwtPayload {
   exp: number;
   admin_role?: "admin" | "super_admin";
   permissions?: string[];
+  source_context?: "admin";
 }
 
 type AuthResponse = {
@@ -68,6 +70,7 @@ function saveSession(data: AuthResponse): LoginResponse {
     rider_id: claims.rider_id || data.rider?.id,
     profile_completed: claims.profile_completed,
     onboarding_completed: claims.onboarding_completed,
+    source_context: claims.source_context,
   };
   localStorage.setItem("authToken", data.access_token);
   if (data.refresh_token) localStorage.setItem("refreshToken", data.refresh_token);

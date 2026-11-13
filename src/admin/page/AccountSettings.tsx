@@ -88,8 +88,8 @@ export default function AccountSettings({ onUserUpdated }: Props) {
         phone: profile.phone.trim() || null,
       });
       const data = response.data as AdminProfile;
-      const stored = JSON.parse(localStorage.getItem("userData") || "{}");
-      localStorage.setItem("userData", JSON.stringify({ ...stored, ...data }));
+      const stored = JSON.parse(localStorage.getItem("adminUserData") || "{}");
+      localStorage.setItem("adminUserData", JSON.stringify({ ...stored, ...data }));
       setAccount(data);
       onUserUpdated(data);
       success("Account information updated");

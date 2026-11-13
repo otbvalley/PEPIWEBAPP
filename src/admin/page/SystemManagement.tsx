@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useState } from "react";
-import { CircleDollarSign, Filter, Gamepad2, Loader2, Plus, Send, Settings2, Tags, Trash2, Trophy, Wallet } from "lucide-react";
+import { Bike, CircleDollarSign, Filter, Gamepad2, Loader2, Plus, Send, Settings2, Tags, Trash2, Trophy, Wallet } from "lucide-react";
 import {
   createDiscoveryFilter,
   createPromoCode,
@@ -24,9 +24,10 @@ import {
   getFeeConfigurations, createFeeConfiguration, updateFeeConfiguration, deleteFeeConfiguration,
 } from "../../services/api";
 import { useToast } from "../../context/ToastContext";
+import DeliveryPricingSettings from "../components/DeliveryPricingSettings";
 
 type Row = Record<string, any>;
-type Tab = "fees" | "settings" | "promos" | "filters" | "games" | "broadcasts";
+type Tab = "fees" | "delivery" | "settings" | "promos" | "filters" | "games" | "broadcasts";
 const errorMessage = (error: any) => error?.response?.data?.detail || error?.message || "Action failed";
 
 const fieldClass = "w-full rounded-xl bg-slate-50 px-3 py-3 text-sm outline-none ring-green-500 focus:ring-2";
@@ -123,6 +124,7 @@ export default function SystemManagement() {
 
   const tabs: [Tab, string, React.ReactNode][] = [
     ["fees", "Fees", <CircleDollarSign size={16} />],
+    ["delivery", "Delivery pricing", <Bike size={16} />],
     ["settings", "Settings", <Settings2 size={16} />],
     ["promos", "Promos", <Tags size={16} />],
     ["filters", "Filters", <Filter size={16} />],
@@ -133,13 +135,14 @@ export default function SystemManagement() {
   return (
     <section className="space-y-5">
       <div><p className="text-xs font-black uppercase tracking-[0.2em] text-green-600">Platform controls</p><h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900">System configuration</h1><p className="mt-1 text-sm text-slate-500">Manage fees, promotions, discovery filters, and rider games.</p></div>
-      <div className="grid grid-cols-6 gap-1 rounded-2xl bg-slate-100 p-1.5">
+      <div className="grid grid-cols-7 gap-1 rounded-2xl bg-slate-100 p-1.5">
         {tabs.map(([value, label, icon]) => <button key={value} onClick={() => setTab(value)} className={`flex items-center justify-center gap-1 rounded-xl px-1 py-3 text-[10px] font-black uppercase sm:text-xs ${tab === value ? "bg-white text-green-700 shadow-sm" : "text-slate-500"}`}>{icon}<span className="hidden min-[390px]:inline">{label}</span></button>)}
       </div>
 
       {loading ? <div className="flex min-h-64 items-center justify-center"><Loader2 className="animate-spin text-green-600" size={34} /></div> : (
         <>
           {tab === "fees" && <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]"><div className="grid gap-3 sm:grid-cols-2">{fees.map((item) => <article key={item.id} className="rounded-2xl border bg-white p-4 shadow-sm"><div className="flex justify-between gap-3"><div><p className="text-[10px] font-black uppercase text-green-600">{item.audience}</p><h2 className="font-black">{item.name}</h2><p className="text-xs text-slate-400">{item.code}{item.is_custom ? " · custom" : ""}</p></div><button onClick={() => setFeeForm({ ...item, amount: String(item.amount), minimum_order_value: item.minimum_order_value == null ? "" : String(item.minimum_order_value), description: item.description || "" })} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold">Edit</button></div><p className="mt-3 text-lg font-black">{item.calculation_type === "percentage" ? `${item.amount}%` : `₦${Number(item.amount).toLocaleString()}${item.code === "rider_waiting" ? "/min" : item.calculation_type === "per_km" ? "/km" : item.code === "vendor_subscription" ? "/month" : ""}`}</p><p className="text-xs text-slate-500">{item.is_active ? "Active" : "Disabled"}{item.code === "rider_waiting" && item.minimum_order_value ? ` · after ${item.minimum_order_value} free min` : ""}</p>{item.description && <p className="mt-1 text-xs text-slate-400">{item.description}</p>}{item.is_custom && <button onClick={() => window.confirm(`Delete ${item.name}?`) && run(() => deleteFeeConfiguration(item.id), "Fee deleted")} className="mt-3 text-xs font-bold text-red-600">Delete custom fee</button>}</article>)}</div><form onSubmit={saveFee} className="h-fit rounded-3xl border bg-white p-5 shadow-sm"><h2 className="font-black">{feeForm.id ? "Edit fee" : "New custom fee"}</h2><div className="mt-4 space-y-3"><input required disabled={Boolean(feeForm.id)} value={feeForm.code} onChange={e => setFeeForm({...feeForm, code:e.target.value.toLowerCase().replace(/\W+/g,"_")})} placeholder="fee_code" className={fieldClass}/><input required value={feeForm.name} onChange={e => setFeeForm({...feeForm,name:e.target.value})} placeholder="Fee name" className={fieldClass}/><div className="grid grid-cols-2 gap-3"><select disabled={Boolean(feeForm.id && !feeForm.is_custom)} value={feeForm.audience} onChange={e=>setFeeForm({...feeForm,audience:e.target.value})} className={fieldClass}><option>customer</option><option>vendor</option><option>rider</option></select><select value={feeForm.calculation_type} onChange={e=>setFeeForm({...feeForm,calculation_type:e.target.value})} className={fieldClass}><option value="fixed">Fixed</option><option value="percentage">Percentage</option><option value="per_km">Per km</option></select></div><input required type="number" min="0" step="0.01" value={feeForm.amount} onChange={e=>setFeeForm({...feeForm,amount:e.target.value})} placeholder="Amount/rate" className={fieldClass}/><input type="number" min="0" value={feeForm.minimum_order_value} onChange={e=>setFeeForm({...feeForm,minimum_order_value:e.target.value})} placeholder={feeForm.code === "rider_waiting" ? "Free waiting minutes" : "Minimum order value"} className={fieldClass}/><input value={feeForm.description} onChange={e=>setFeeForm({...feeForm,description:e.target.value})} placeholder="Description" className={fieldClass}/><Toggle checked={feeForm.is_active} onChange={value=>setFeeForm({...feeForm,is_active:value})}/></div><SaveButton busy={busy}/></form></div>}
+          {tab === "delivery" && <DeliveryPricingSettings />}
           {tab === "settings" && <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
             <div className="space-y-3">{settings.map((item) => <article key={item.id} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><h2 className="truncate font-black text-slate-800">{item.key}</h2><span className={`h-2 w-2 rounded-full ${item.is_active ? "bg-green-500" : "bg-slate-300"}`} /></div><p className="text-sm text-slate-500">{item.description || "No description"}</p></div><span className="font-black text-slate-900">{Number(item.value).toLocaleString()}</span><button onClick={() => setSettingForm({ key: item.key, value: String(item.value), description: item.description || "", is_active: item.is_active })} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold">Edit</button><button onClick={() => window.confirm(`Delete ${item.key}?`) && run(() => deleteSystemSetting(item.key), "Setting deleted")} className="rounded-xl bg-red-50 p-2 text-red-600"><Trash2 size={15} /></button></article>)}</div>
             <form onSubmit={saveSetting} className="h-fit rounded-3xl border border-slate-100 bg-white p-5 shadow-sm"><h2 className="font-black text-slate-900">{settings.some((item) => item.key === settingForm.key) ? "Edit" : "New"} setting</h2><div className="mt-4 space-y-3"><input required value={settingForm.key} onChange={(e) => setSettingForm({ ...settingForm, key: e.target.value })} placeholder="Key, e.g. price_per_km" className={fieldClass} /><input required type="number" step="0.01" value={settingForm.value} onChange={(e) => setSettingForm({ ...settingForm, value: e.target.value })} placeholder="Numeric value" className={fieldClass} /><input value={settingForm.description} onChange={(e) => setSettingForm({ ...settingForm, description: e.target.value })} placeholder="Description" className={fieldClass} /><Toggle checked={settingForm.is_active} onChange={(value) => setSettingForm({ ...settingForm, is_active: value })} /></div><SaveButton busy={busy} /></form>

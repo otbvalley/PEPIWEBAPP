@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Activity, Bell, ChevronRight, CircleHelp, Clock3, Home, LogOut, MapPin, Menu, MessageCircle, Package, Settings, ShoppingCart, Star, UserRound, WalletCards, X } from "lucide-react";
+import { Activity, Bell, Bike, ChevronRight, CircleHelp, Clock3, Home, LogOut, MapPin, Menu, MessageCircle, Package, Settings, ShieldCheck, ShoppingCart, Star, UserRound, WalletCards, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { UserData } from "../../services/backendAuthService";
 import logo from "../../assets/Logo SVG 1.png";
 import RiderPresence from "./RiderPresence";
-import api, { getAdminWebSocketUrl } from "../../services/api";
+import api, { clearRoleSession, getAdminWebSocketUrl } from "../../services/api";
 import { getCart } from "../customer/cart";
 import "./WebShell.css";
 
@@ -30,7 +30,7 @@ const primaryLinks: Record<Role, readonly ShellLink[]> = {
 const desktopGroups: Record<Role, readonly { label: string; links: readonly ShellLink[] }[]> = {
   customer: [
     { label: "Order food", links: [["Home", "/customer/home", Home], ["Discover", "/customer/search", Menu], ["Cart", "/customer/cart", ShoppingCart], ["Orders", "/customer/orders", Package]] },
-    { label: "Your Pepi", links: [["Messages", "/customer/messages", MessageCircle], ["Offers", "/customer/offers", Star], ["Wallet", "/customer/wallet", WalletCards], ["Addresses", "/customer/addresses", MapPin]] },
+    { label: "Your Pepi", links: [["Request a rider", "/customer/delivery-requests", Bike], ["Messages", "/customer/messages", MessageCircle], ["Offers", "/customer/offers", Star], ["Wallet", "/customer/wallet", WalletCards], ["Addresses", "/customer/addresses", MapPin]] },
   ],
   vendor: [
     { label: "Operations", links: [["Home", "/vendor/dashboard", Home], ["Orders", "/vendor/orders", Package], ["Menu", "/vendor/menu", Menu], ["Chat", "/vendor/chat", MessageCircle]] },
@@ -47,7 +47,7 @@ const pageNames: Record<string, string> = {
   cart: "Your cart", checkout: "Checkout", messages: "Messages", chat: "Chat", menu: "Menu",
   earnings: "Earnings", reviews: "Reviews", profile: "Account", wallet: "Wallet", addresses: "Addresses",
   map: "Delivery map", notifications: "Notifications", history: "Order history", activity: "Activity",
-  settings: "Settings", support: "Support",
+  settings: "Settings", support: "Support", "delivery-requests": "Request a rider",
 };
 
 function SidebarLink({ item, count }: { item: ShellLink; count?: number }) {
@@ -95,7 +95,8 @@ export default function WebShell({ role, user }: Props) {
     document.addEventListener("keydown", onKeyDown);
     return () => { document.body.style.overflow = previousOverflow; document.removeEventListener("keydown", onKeyDown); };
   }, [sidebarOpen]);
-  const signOut = () => { localStorage.removeItem("authToken"); localStorage.removeItem("refreshToken"); localStorage.removeItem("userData"); navigate("/signin"); };
+  const signOut = () => { clearRoleSession(); navigate("/signin"); };
+  const returnToAdmin = () => { clearRoleSession(); navigate("/admin-dashboard"); };
   return <div className={`pepi-shell pepi-shell--${role}`}>
     {sidebarOpen && <button className="pepi-sidebar-overlay" onClick={() => setSidebarOpen(false)} aria-label="Close navigation" />}
     <aside id="pepi-navigation" className={`pepi-sidebar${sidebarOpen ? " is-open" : ""}`} aria-label={`${roleName} navigation`}>
@@ -106,6 +107,7 @@ export default function WebShell({ role, user }: Props) {
       </NavLink>
       <nav aria-label={`${roleName} workspace`}>{desktopGroups[role].map(group => <div className="pepi-nav-group" key={group.label}><p>{group.label}</p>{group.links.map(item => <SidebarLink key={item[1]} item={item} count={item[1] === "/customer/cart" ? cartCount : undefined}/>)}</div>)}</nav>
       <div className="pepi-sidebar-footer">
+        {user.source_context === "admin" && <button className="pepi-signout" onClick={returnToAdmin}><ShieldCheck size={18}/> Return to admin</button>}
         <NavLink to={`/${role}/support`} className="pepi-help-link"><CircleHelp size={18} /><span><strong>Need help?</strong><small>Visit support</small></span></NavLink>
         <button className="pepi-signout" onClick={signOut}><LogOut size={18}/> Sign out</button>
       </div>
@@ -113,7 +115,7 @@ export default function WebShell({ role, user }: Props) {
     <div className="pepi-main">
       <header className="pepi-topbar">
         <div className="pepi-topbar-title"><button ref={menuButtonRef} className="pepi-menu-button" onClick={() => setSidebarOpen(true)} aria-label="Open navigation" aria-expanded={sidebarOpen} aria-controls="pepi-navigation"><Menu size={21}/></button><span className="pepi-mobile-brand"><img src={logo} alt="" /></span><div><small><span>{roleName} workspace</span><ChevronRight size={13} />{pageTitle}</small><h1>{routeKey === "home" || routeKey === "dashboard" ? `Good day, ${firstName}` : pageTitle}</h1></div></div>
-        <div className="pepi-topbar-actions">{role === "customer" && <NavLink to="/customer/cart" className="pepi-icon-button pepi-header-cart" aria-label={`Cart with ${cartCount} items`}><ShoppingCart size={19}/>{cartCount > 0 && <b className="pepi-header-count">{cartCount > 99 ? "99+" : cartCount}</b>}</NavLink>}<NavLink to={`/${role}/notifications`} className="pepi-icon-button" aria-label={`${notificationCount} unread notifications`}><Bell size={19}/>{notificationCount > 0 && <b className="pepi-header-count">{notificationCount > 99 ? "99+" : notificationCount}</b>}</NavLink><NavLink to={`/${role}/profile`} className="pepi-topbar-avatar" aria-label="Open account">{initials}</NavLink></div>
+        <div className="pepi-topbar-actions">{user.source_context === "admin" && <button className="pepi-secondary-action" onClick={returnToAdmin}><ShieldCheck size={16}/><span>Return to admin</span></button>}{role === "customer" && <NavLink to="/customer/cart" className="pepi-icon-button pepi-header-cart" aria-label={`Cart with ${cartCount} items`}><ShoppingCart size={19}/>{cartCount > 0 && <b className="pepi-header-count">{cartCount > 99 ? "99+" : cartCount}</b>}</NavLink>}<NavLink to={`/${role}/notifications`} className="pepi-icon-button" aria-label={`${notificationCount} unread notifications`}><Bell size={19}/>{notificationCount > 0 && <b className="pepi-header-count">{notificationCount > 99 ? "99+" : notificationCount}</b>}</NavLink><NavLink to={`/${role}/profile`} className="pepi-topbar-avatar" aria-label="Open account">{initials}</NavLink></div>
       </header>
       {role === "rider" && <RiderPresence />}
       <main className="pepi-content"><div className="pepi-content-inner"><Outlet context={{ inWebShell: true }} /></div></main>

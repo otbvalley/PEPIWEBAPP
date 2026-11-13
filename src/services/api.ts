@@ -42,8 +42,65 @@ type RetryableRequestConfig = NonNullable<AxiosError["config"]> & {
   _retry?: boolean;
 };
 
+type ApiErrorBody = { detail?: unknown; message?: unknown; error_reference?: string; errors?: Array<{ loc?: unknown[]; msg?: string }> };
+
+export const getApiErrorMessage = (error: unknown, fallback = "We could not complete that request.") => {
+  if (!axios.isAxiosError<ApiErrorBody>(error)) return error instanceof Error && error.message ? error.message : fallback;
+  const body = error.response?.data;
+  const detail = body?.detail ?? body?.message;
+  if (typeof detail === "string" && detail.trim() && !/^(internal server error|an unexpected error occurred)$/i.test(detail.trim())) return detail;
+  const firstValidation = body?.errors?.[0];
+  if (firstValidation?.msg) {
+    const field = (firstValidation.loc || []).filter(part => !["body", "query"].includes(String(part))).join(" ").replaceAll("_", " ");
+    return `${field ? `${field.replace(/\b\w/g, value => value.toUpperCase())}: ` : ""}${firstValidation.msg}`;
+  }
+  if (error.code === "ECONNABORTED") return "The request took too long. Check your connection and try again.";
+  if (!error.response) return navigator.onLine ? "The service could not be reached. Try again in a moment." : "You appear to be offline. Reconnect and try again.";
+  if (error.response.status === 401) return "Your session has expired. Sign in again to continue.";
+  if (error.response.status === 403) return "Your account does not have access to this action.";
+  if (error.response.status === 404) return "This item is no longer available. Refresh the page and try again.";
+  if (error.response.status === 409) return "This information changed. Refresh and try the action again.";
+  if (error.response.status === 429) return "Too many attempts. Wait a moment before trying again.";
+  if (error.response.status >= 500) return body?.error_reference ? `The service had a problem. Try again. Support reference: ${body.error_reference}.` : "The service had a problem. Try again in a moment.";
+  return fallback;
+};
+
 let adminSessionRefreshPromise: Promise<string | null> | null = null;
 let roleSessionRefreshPromise: Promise<string | null> | null = null;
+
+const ADMIN_ACCESS_KEY = "adminAuthToken";
+const ADMIN_REFRESH_KEY = "adminRefreshToken";
+const ADMIN_USER_KEY = "adminUserData";
+
+const isAdminApiRequest = (url = "") => /^\/admin(?:\/|$)/.test(url) || url === "/auth/admin/customer-context";
+const shouldUseAdminSession = (url = "") => isAdminApiRequest(url) || window.location.pathname.startsWith("/admin");
+
+export const getAdminAccessToken = () => localStorage.getItem(ADMIN_ACCESS_KEY);
+export const getAdminUserData = () => localStorage.getItem(ADMIN_USER_KEY);
+
+export const clearRoleSession = () => {
+  localStorage.removeItem("authToken");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("userData");
+};
+
+export const saveAdminSession = (accessToken: string, refreshToken: string | undefined, user: unknown) => {
+  localStorage.setItem(ADMIN_ACCESS_KEY, accessToken);
+  if (refreshToken) localStorage.setItem(ADMIN_REFRESH_KEY, refreshToken);
+  localStorage.setItem(ADMIN_USER_KEY, JSON.stringify(user || {}));
+};
+
+export const migrateLegacyAdminSession = () => {
+  if (getAdminAccessToken()) return;
+  const token = localStorage.getItem("authToken");
+  if (!token) return;
+  try {
+    const claims = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))) as { role?: string; admin_role?: string };
+    if (claims.role !== "admin" && !claims.admin_role) return;
+    saveAdminSession(token, localStorage.getItem("refreshToken") || undefined, JSON.parse(localStorage.getItem("userData") || "{}"));
+    clearRoleSession();
+  } catch { /* Invalid legacy sessions are handled by the route guard. */ }
+};
 
 export const refreshRoleSession = (): Promise<string | null> => {
   if (roleSessionRefreshPromise) return roleSessionRefreshPromise;
@@ -52,14 +109,14 @@ export const refreshRoleSession = (): Promise<string | null> => {
   roleSessionRefreshPromise = axios.post<AdminRefreshResponse>(`${API_BASE_URL}/auth/refresh`, { refresh_token: refreshToken })
     .then(({ data }) => {
       if (!data.access_token || !data.user?.role) throw new Error("Invalid session response");
-      const claims = JSON.parse(atob(data.access_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))) as { vendor_id?: string; rider_id?: string; profile_completed?: boolean; onboarding_completed?: boolean };
+      const claims = JSON.parse(atob(data.access_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))) as { vendor_id?: string; rider_id?: string; profile_completed?: boolean; onboarding_completed?: boolean; source_context?: "admin" };
       localStorage.setItem("authToken", data.access_token);
       localStorage.setItem("refreshToken", data.refresh_token || refreshToken);
-      localStorage.setItem("userData", JSON.stringify({ ...data.user, vendor_id: claims.vendor_id, rider_id: claims.rider_id, profile_completed: claims.profile_completed, onboarding_completed: claims.onboarding_completed }));
+      localStorage.setItem("userData", JSON.stringify({ ...data.user, vendor_id: claims.vendor_id, rider_id: claims.rider_id, profile_completed: claims.profile_completed, onboarding_completed: claims.onboarding_completed, source_context: claims.source_context }));
       return data.access_token;
     })
     .catch((error: unknown) => {
-      if (axios.isAxiosError(error) && [401, 403, 422].includes(error.response?.status || 0)) clearAdminSession();
+      if (axios.isAxiosError(error) && [401, 403, 422].includes(error.response?.status || 0)) clearRoleSession();
       throw error;
     })
     .finally(() => { roleSessionRefreshPromise = null; });
@@ -67,15 +124,15 @@ export const refreshRoleSession = (): Promise<string | null> => {
 };
 
 export const clearAdminSession = () => {
-  localStorage.removeItem("authToken");
-  localStorage.removeItem("refreshToken");
-  localStorage.removeItem("userData");
+  localStorage.removeItem(ADMIN_ACCESS_KEY);
+  localStorage.removeItem(ADMIN_REFRESH_KEY);
+  localStorage.removeItem(ADMIN_USER_KEY);
 };
 
 export const confirmAdminSession = (): Promise<string | null> => {
   if (adminSessionRefreshPromise) return adminSessionRefreshPromise;
 
-  const refreshToken = localStorage.getItem("refreshToken");
+  const refreshToken = localStorage.getItem(ADMIN_REFRESH_KEY);
   if (!refreshToken) return Promise.resolve(null);
 
   adminSessionRefreshPromise = axios
@@ -87,9 +144,7 @@ export const confirmAdminSession = (): Promise<string | null> => {
         clearAdminSession();
         throw new Error("Refreshed session does not have admin access");
       }
-      localStorage.setItem("authToken", data.access_token);
-      localStorage.setItem("refreshToken", data.refresh_token || refreshToken);
-      localStorage.setItem("userData", JSON.stringify(data.user));
+      saveAdminSession(data.access_token, data.refresh_token || refreshToken, data.user);
       return data.access_token;
     })
     .catch((error: unknown) => {
@@ -115,7 +170,7 @@ api.interceptors.request.use(
     if (adminSessionRefreshPromise && !config.url?.includes("/auth/refresh")) {
       await adminSessionRefreshPromise;
     }
-    const token = localStorage.getItem("authToken");
+    const token = shouldUseAdminSession(config.url) ? getAdminAccessToken() : localStorage.getItem("authToken");
     if (token) config.headers.Authorization = `Bearer ${token}`;
     // Let the browser add the multipart boundary. Keeping the instance-wide
     // application/json header here causes FastAPI to receive an empty body.
@@ -135,22 +190,28 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isLoginRequest) {
       originalRequest._retry = true;
       try {
-        const token = window.location.pathname.startsWith("/admin") ? await confirmAdminSession() : await refreshRoleSession();
+        const adminRequest = shouldUseAdminSession(originalRequest.url);
+        const token = adminRequest ? await confirmAdminSession() : await refreshRoleSession();
         if (!token) throw new Error("No refresh token available");
         originalRequest.headers.Authorization = `Bearer ${token}`;
         return api(originalRequest);
       } catch (refreshError) {
         // Invalid refresh credentials clear storage inside confirmAdminSession.
         // Keep a still-usable local session on temporary network/server failure.
-        if (!localStorage.getItem("authToken") || !localStorage.getItem("refreshToken")) {
-          clearAdminSession();
-          if (window.location.pathname.startsWith("/admin-dashboard")) {
+        const adminRequest = shouldUseAdminSession(originalRequest.url);
+        const missingSession = adminRequest
+          ? !getAdminAccessToken() || !localStorage.getItem(ADMIN_REFRESH_KEY)
+          : !localStorage.getItem("authToken") || !localStorage.getItem("refreshToken");
+        if (missingSession) {
+          if (adminRequest) clearAdminSession(); else clearRoleSession();
+          if (adminRequest && window.location.pathname.startsWith("/admin-dashboard")) {
             window.location.assign("/admin-login");
           }
         }
         return Promise.reject(refreshError);
       }
     }
+    error.message = getApiErrorMessage(error);
     return Promise.reject(error);
   },
 );

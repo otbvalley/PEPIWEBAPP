@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useCallback } from "react";
-import { ChevronRight, ArrowLeft, Loader2, MapPin, X } from "lucide-react";
+import { ChevronRight, ArrowLeft, Loader2, MapPin, X, Bike, ClipboardList } from "lucide-react";
 import AdminNotificationBell from "../components/AdminNotificationBell";
 import api from "../../services/api";
 import RiderLiveMap from "../components/RiderLiveMap";
+import AdminDeliveryRequests from "../components/AdminDeliveryRequests";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type OrderStatus =
@@ -60,6 +61,7 @@ interface OrderDetail {
   riderPhone: string;
   riderId?: string;
   supportTickets: any[];
+  sourceContext: "admin" | "customer";
 }
 
 // ── API helpers ───────────────────────────────────────────────────────────────
@@ -131,6 +133,7 @@ const OrderManagement: React.FC<{ initialStatus?: string; initialPeriod?: string
   const [action, setAction] = useState<AdminAction | null>(null);
   const [actionError, setActionError] = useState("");
   const [liveTrackingOrderId, setLiveTrackingOrderId] = useState<string | null>(null);
+  const [deliveryPanel, setDeliveryPanel] = useState<"create" | "list" | null>(null);
 
   // ── Fetch orders ────────────────────────────────────────────────────────────
   const fetchOrders = useCallback(async () => {
@@ -203,6 +206,7 @@ const OrderManagement: React.FC<{ initialStatus?: string; initialPeriod?: string
         riderPhone: d.rider?.phone || "",
         riderId: d.rider?.id,
         supportTickets: command.support_tickets || [],
+        sourceContext: d.source_context === "admin" ? "admin" : "customer",
       };
 
       setSelectedOrder(detail);
@@ -313,6 +317,14 @@ const OrderManagement: React.FC<{ initialStatus?: string; initialPeriod?: string
           </div>
 
           <div className="p-6 space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button onClick={() => setDeliveryPanel("create")} className="group flex items-center justify-between rounded-[2rem] bg-slate-950 p-5 text-left text-white shadow-xl transition hover:-translate-y-0.5 hover:shadow-2xl">
+                <span className="flex items-center gap-3"><span className="rounded-2xl bg-green-500 p-3"><Bike size={21}/></span><span><b className="block text-sm uppercase tracking-tight">Order a rider</b><small className="text-slate-400">Create, price, and broadcast a delivery</small></span></span><ChevronRight className="text-green-400 transition group-hover:translate-x-1" size={22}/>
+              </button>
+              <button onClick={() => setDeliveryPanel("list")} className="group flex items-center justify-between rounded-[2rem] border border-green-100 bg-green-50 p-5 text-left shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl">
+                <span className="flex items-center gap-3"><span className="rounded-2xl bg-white p-3 text-green-700 shadow-sm"><ClipboardList size={21}/></span><span><b className="block text-sm uppercase tracking-tight text-slate-900">Rider orders</b><small className="text-slate-500">Monitor admin delivery broadcasts</small></span></span><ChevronRight className="text-green-600 transition group-hover:translate-x-1" size={22}/>
+              </button>
+            </div>
             <div className="grid gap-2 rounded-2xl border border-slate-100 bg-white p-3 shadow-sm sm:grid-cols-2 lg:grid-cols-5"><input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && fetchOrders()} placeholder="Order, customer, vendor, rider, phone" className="rounded-xl bg-slate-50 p-3 text-sm outline-none focus:ring-2 focus:ring-green-500 sm:col-span-2"/><select value={paymentStatus} onChange={e => setPaymentStatus(e.target.value)} className="rounded-xl bg-slate-50 p-3 text-sm"><option value="">Any payment</option>{["pending","success","failed","refunded"].map(value => <option key={value}>{value}</option>)}</select><input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="rounded-xl bg-slate-50 p-3 text-sm"/><input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="rounded-xl bg-slate-50 p-3 text-sm"/><button onClick={fetchOrders} className="rounded-xl bg-slate-950 p-3 text-xs font-black text-white sm:col-span-2 lg:col-span-5">Search orders</button></div>
             {/* Control buttons */}
             <button
@@ -489,6 +501,7 @@ const OrderManagement: React.FC<{ initialStatus?: string; initialPeriod?: string
                     >
                       {selectedOrder.status}
                     </span>
+                    {selectedOrder.sourceContext === "admin" && <span className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-violet-700">Admin purchase</span>}
                   </div>
                 </div>
               </div>
@@ -763,6 +776,7 @@ const OrderManagement: React.FC<{ initialStatus?: string; initialPeriod?: string
           </div>
         </div>
       )}
+      {deliveryPanel && <AdminDeliveryRequests initialView={deliveryPanel} onClose={() => setDeliveryPanel(null)}/>}
     </div>
   );
 };

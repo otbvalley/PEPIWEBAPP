@@ -294,6 +294,7 @@ export function RiderDashboard() {
   const [period, setPeriod] = useState("today");
   const { data, loading, error, retry } = useLoad<RiderStats>(`/riders/dashboard-stats?period=${period}`);
   const { data: deliveries, loading: deliveriesLoading, error: deliveriesError, retry: retryDeliveries } = useLoad<WorkspaceOrder[]>("/riders/orders");
+  const { data: riderProfile, loading: profileLoading, error: profileError, retry: retryProfile } = useLoad<{ bank_info?: { bank_name?: string; bank_code?: string; account_number?: string; account_name?: string } }>("/riders/profile");
   const [updating, setUpdating] = useState(false); const [online, setOnline] = useState<boolean | null>(null); const [statusError, setStatusError] = useState("");
   const approved = data?.status === "approved" || data?.status === "accepted";
   const active = approved && (online ?? data?.is_active ?? false);
@@ -305,8 +306,8 @@ export function RiderDashboard() {
   const current = (deliveries || []).find(order => ["accepted", "preparing", "ready", "picked_up"].includes(order.status));
   return <div className="pepi-workspace-page">
     <div className="pepi-dashboard-heading"><div><h2>{active ? "You are ready for deliveries" : "Ready when you are"}</h2><p>{active ? "You will see new delivery requests as they become available." : "Go online when you are ready to accept nearby deliveries."}</p></div><button className={`pepi-availability-toggle ${active ? "is-active" : ""}`} onClick={toggle} disabled={updating || loading || !approved}><span><i/></span>{updating ? "Updating" : active ? "Online" : "Go online"}</button></div>
-    {data && !approved && <div className="pepi-inline-notice">Your rider account is awaiting approval.</div>}{statusError && <div className="pepi-inline-error" role="alert">{statusError}</div>}
-    <LoadState loading={loading || deliveriesLoading} error={error || deliveriesError} retry={() => { retry(); retryDeliveries(); }}/>
+    {data && !approved && <div className="pepi-inline-notice">Your rider account is awaiting approval.</div>}{riderProfile && !riderProfile.bank_info?.account_number && <div className="pepi-inline-notice">Payout setup is incomplete. <Link to="/rider/payment-settings">Add a verified bank account</Link> before your first withdrawal.</div>}{statusError && <div className="pepi-inline-error" role="alert">{statusError}</div>}
+    <LoadState loading={loading || deliveriesLoading || profileLoading} error={error || deliveriesError || profileError} retry={() => { retry(); retryDeliveries(); retryProfile(); }}/>
     {data && <>
       <div className="pepi-period-row"><span>Performance</span><div>{[["today", "Today"], ["week", "7 days"], ["month", "Month"], ["all", "All time"]].map(([value, label]) => <button className={period === value ? "active" : ""} key={value} onClick={() => setPeriod(value)}>{label}</button>)}</div></div>
       <div className="pepi-metric-grid"><Metric label="Earnings" value={`₦${compactMoney(data.today_earnings)}`} detail="For selected period" icon={<WalletCards/>}/><Metric label="Orders" value={String(data.today_orders)} detail={`${data.completedToday} completed`} icon={<PackageCheck/>}/><Metric label="Distance" value={`${distance.toFixed(1)} km`} detail={`${target.toFixed(0)} km target`} icon={<Bike/>}/><Metric label="Rating" value={data.average_rating ? data.average_rating.toFixed(1) : "New"} detail={`${data.total_deliveries || 0} total deliveries`} icon={<Star/>}/></div>

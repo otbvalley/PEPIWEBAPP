@@ -1,5 +1,5 @@
-import { useEffect, useState, type FormEvent } from "react";
-import api from "../../services/api";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import api, { getApiErrorMessage } from "../../services/api";
 
 export type SavedAddress = {
   id: string;
@@ -28,15 +28,17 @@ export default function CustomerAddresses() {
   const [longitude, setLongitude] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const errorRef = useRef<HTMLParagraphElement>(null);
 
   async function load() {
     try {
       const { data } = await api.get<SavedAddress[]>("/customer/addresses");
       setItems(data);
       setError("");
-    } catch { setError("Could not load addresses."); }
+    } catch (error) { setError(getApiErrorMessage(error, "Your addresses could not be loaded. Try again.")); }
   }
   useEffect(() => { void load(); }, []);
+  useEffect(() => { if (error) errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); }, [error]);
 
   function startEdit(item: SavedAddress) {
     setEditingId(item.id);
@@ -56,23 +58,23 @@ export default function CustomerAddresses() {
       if (editingId) await api.patch(`/customer/addresses/${editingId}`, payload);
       else await api.post("/customer/addresses", { ...payload, is_default: items.length === 0 });
       resetForm(); await load();
-    } catch (err) { setError((err as { response?: { data?: { detail?: string } } }).response?.data?.detail || "Could not save address. Please try again."); }
+    } catch (err) { setError(getApiErrorMessage(err, "The address was not saved. Review the address and try again.")); }
     finally { setBusy(false); }
   }
   async function makeDefault(item: SavedAddress) {
     setError("");
     try { await api.patch(`/customer/addresses/${item.id}`, { is_default: true }); await load(); }
-    catch { setError("Could not set default address."); }
+    catch (error) { setError(getApiErrorMessage(error, "The default address was not changed. Refresh and try again.")); }
   }
   async function remove(item: SavedAddress) {
     if (!window.confirm(`Delete ${item.address_name || "this address"}?`)) return;
     setError("");
     try { await api.delete(`/customer/addresses/${item.id}`); if (editingId === item.id) resetForm(); await load(); }
-    catch { setError("Could not delete address."); }
+    catch (error) { setError(getApiErrorMessage(error, "The address was not deleted. Refresh and try again.")); }
   }
   return <div className="pepi-address-page">
     <div className="pepi-page-heading"><div><p className="pepi-eyebrow">Delivery</p><h2>Saved addresses</h2></div></div>
-    {error && <p role="alert" className="pepi-form-error">{error}</p>}
+    {error && <p ref={errorRef} role="alert" className="pepi-form-error">{error} <button type="button" onClick={() => void load()}>Retry</button></p>}
     <div className="pepi-address-grid">{items.length ? items.map(item => <article className={`pepi-address-card ${item.is_default ? "is-default" : ""}`} key={item.id}>
       <div><strong>{item.address_name || "Address"}{item.is_default ? " · Default" : ""}</strong><small>{item.address}</small>{(item.apartment || item.building_name) && <small>{[item.apartment, item.building_name].filter(Boolean).join(" · ")}</small>}{item.delivery_instructions && <small>{item.delivery_instructions}</small>}</div>
       <div><button onClick={() => startEdit(item)}>Edit</button><button disabled={item.is_default} onClick={() => void makeDefault(item)}>Set default</button><button onClick={() => void remove(item)}>Delete</button></div>

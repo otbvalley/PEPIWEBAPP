@@ -15,6 +15,7 @@ import {
 import AdminNotificationBell from "../components/AdminNotificationBell";
 
 import api, {
+  getApiErrorMessage,
   getAdminTransactionDetail,
   reverseTransaction,
   refundAdminPayment,
@@ -177,23 +178,24 @@ export default function Transaction() {
   const [savingConfig, setSavingConfig] = useState(false);
   const [actionError, setActionError] = useState("");
   const [finance, setFinance] = useState<any>(null);
+  const [loadError, setLoadError] = useState("");
 
   // ── Fetch ───────────────────────────────────────────────────────────────────
   const loadTransactions = async () => {
-    setLoading(true);
+    setLoading(true); setLoadError("");
     try {
       const [res, summary] = await Promise.all([fetchTransactions(), api.get("/admin/finance/summary")]);
       setTransactions(Array.isArray(res.data) ? res.data : []);
       setFinance(summary.data);
     } catch (e) {
-      console.error("Failed to load transactions:", e);
+      setLoadError(getApiErrorMessage(e, "Transactions and the finance summary could not be loaded. Try again."));
     } finally {
       setLoading(false);
     }
   };
 
   const loadPayouts = async (status: PayoutTab = payoutTab) => {
-    setLoading(true);
+    setLoading(true); setLoadError("");
     try {
       const [res, configRes] = await Promise.all([
         fetchPayouts(status === "all" ? undefined : status),
@@ -210,19 +212,19 @@ export default function Transaction() {
         rider_auto_approve: Boolean(configRes.data.rider_auto_approve),
       });
     } catch (e) {
-      console.error("Failed to load payouts:", e);
+      setLoadError(getApiErrorMessage(e, "Payouts could not be loaded. Try again."));
     } finally {
       setLoading(false);
     }
   };
 
   const loadPayments = async () => {
-    setLoading(true);
+    setLoading(true); setLoadError("");
     try {
       const res = await fetchPayments({ limit: 100 });
       setPayments(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
-      console.error("Failed to load payments:", e);
+      setLoadError(getApiErrorMessage(e, "Payments could not be loaded. Try again."));
     } finally {
       setLoading(false);
     }
@@ -586,6 +588,7 @@ export default function Transaction() {
         )}
 
         {/* ── Content ────────────────────────────────────────────────────────── */}
+        {loadError && <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700"><span>{loadError}</span><button onClick={() => activeTab === "transactions" ? void loadTransactions() : activeTab === "payouts" ? void loadPayouts() : void loadPayments()} className="rounded-xl bg-red-700 px-4 py-2 text-xs text-white">Retry</button></div>}
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-10 h-10 text-green-600 animate-spin" />

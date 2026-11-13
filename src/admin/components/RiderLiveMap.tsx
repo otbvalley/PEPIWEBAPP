@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState } from "react";
-import api, { getAdminWebSocketUrl } from "../../services/api";
+import api, { getAdminAccessToken, getAdminWebSocketUrl } from "../../services/api";
 import { animateGoogleMarker, loadGoogleMaps } from "../../services/googleMaps";
 
 type Props = { riderId?: string; orderId?: string; className?: string; audience?: "admin" | "workspace" };
@@ -49,14 +49,14 @@ export default function RiderLiveMap({ riderId, orderId, className = "", audienc
   }, [endpoint]);
 
   useEffect(() => {
-    if (!localStorage.getItem("authToken")) return;
+    if (!getAdminAccessToken()) return;
     let socket: WebSocket | null = null;
     let retryTimer: number | null = null;
     let pingTimer: number | null = null;
     let stopped = false;
 
     const connect = () => {
-      const currentToken = localStorage.getItem("authToken");
+      const currentToken = getAdminAccessToken();
       if (!currentToken) return;
       socket = new WebSocket(`${getAdminWebSocketUrl()}?token=${encodeURIComponent(currentToken)}`);
       socket.onopen = () => {

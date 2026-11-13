@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Bike, Camera, CheckCircle2, ChevronRight, Clock3, CreditCard, FileText, LockKeyhole, MapPin, MessageCircle, Package, Phone, Shield, Store, Trash2, UserRound } from "lucide-react";
-import api from "../../services/api";
+import api, { getApiErrorMessage } from "../../services/api";
 import { readStoredUser } from "../auth/roleRouting";
 
 type OrderItem = { id: string; quantity: number; price: number; menu_item?: { name?: string; image_url?: string }; addons?: { id: string; name_snapshot: string; quantity: number; price_snapshot: number }[] };
@@ -9,7 +9,7 @@ type OrderDetail = { id: string; status: string; created_at?: string; updated_at
 type VendorProfile = { id: string; business_name?: string; bank_name?: string; bank_code?: string; account_number?: string; account_name?: string };
 type Bank = { name: string; code: string };
 
-const errorText = (error: unknown) => (error as { response?: { data?: { detail?: string } } }).response?.data?.detail || "Something went wrong. Please try again.";
+const errorText = (error: unknown) => getApiErrorMessage(error, "We could not complete that vendor action. Try again.");
 const money = (value?: number) => `₦${Number(value || 0).toLocaleString("en-NG", { maximumFractionDigits: 2 })}`;
 const titleCase = (value: string) => value.replaceAll("_", " ").replace(/\b\w/g, letter => letter.toUpperCase());
 

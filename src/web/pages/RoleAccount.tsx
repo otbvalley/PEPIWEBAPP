@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Bell, Bike, Camera, ChevronRight, CircleHelp, ClipboardList, Clock3, CreditCard, FileText, Heart, History, LayoutGrid, LocateFixed, Lock, LogOut, MapPin, MessageCircle, Search, Shield, Smartphone, Star, Store, UserRound, WalletCards } from "lucide-react";
-import api from "../../services/api";
+import api, { getApiErrorMessage } from "../../services/api";
 import { readStoredUser, type PepiRole } from "../auth/roleRouting";
 
 type Role = Exclude<PepiRole, "admin">;
 type Json = Record<string, unknown>;
-const errorText = (error: unknown) => (error as { response?: { data?: { detail?: string } } }).response?.data?.detail || "Something went wrong. Please try again.";
+const errorText = (error: unknown) => getApiErrorMessage(error, "We could not load this information. Try again.");
 const textValue = (value: unknown) => typeof value === "string" ? value : value == null ? "" : String(value);
 
 function useRemote<T>(url: string) {
@@ -70,7 +70,7 @@ const accountMenus = {
   ],
   rider: [
     ["Profile", "/rider/profile/edit", UserRound], ["Order history", "/rider/activity", ClipboardList],
-    ["Daily rider activity", "/rider/activity", Clock3], ["Earning and payment", "/rider/earnings", CreditCard],
+    ["Daily rider activity", "/rider/activity", Clock3], ["Earning and payment", "/rider/earnings", CreditCard], ["Payment information", "/rider/payment-settings", CreditCard],
     ["Devices and sessions", "/rider/profile/sessions", Smartphone], ["Support", "/rider/support", MessageCircle],
     ["Privacy policy", "/privacy", Shield], ["Terms of service", "/terms", FileText],
   ],

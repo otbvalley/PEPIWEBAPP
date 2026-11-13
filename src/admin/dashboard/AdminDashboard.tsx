@@ -15,6 +15,7 @@ import {
   Headphones,
   ShieldCheck,
   ShoppingBag,
+  Utensils,
   Store,
   Truck,
   UserX,
@@ -22,7 +23,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import api from "../../services/api";
+import api, { clearAdminSession, clearRoleSession, getAdminUserData } from "../../services/api";
 import { loadGoogleMaps } from "../../services/googleMaps";
 import OrderManagement from "../page/OrderManagent";
 import UserManagement from "../page/UserManagement";
@@ -82,8 +83,10 @@ export default function AdminDashboard() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [orderDrill, setOrderDrill] = useState<OrderDrill>({});
   const [user, setUser] = useState<AdminProfile>(() => {
-    try { return JSON.parse(localStorage.getItem("userData") || "{}"); } catch { return {} as AdminProfile; }
+    try { return JSON.parse(getAdminUserData() || "{}"); } catch { return {} as AdminProfile; }
   });
+  const [startingOrder, setStartingOrder] = useState(false);
+  const [orderStartError, setOrderStartError] = useState("");
   const granted = useMemo(() => user.permissions || user.admin_permissions || [], [user.permissions, user.admin_permissions]);
   const visibleNav = useMemo(() => navItems.filter((item) => !item.permission || user.admin_role === "super_admin" || (item.id !== "admins" && granted.includes(item.permission))), [granted, user.admin_role]);
 
@@ -92,10 +95,24 @@ export default function AdminDashboard() {
   }, [section, visibleNav]);
 
   const logout = () => {
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("userData");
-    localStorage.removeItem("refreshToken");
+    clearAdminSession();
+    clearRoleSession();
     navigate("/admin-login", { replace: true });
+  };
+
+  const orderMeals = async () => {
+    setStartingOrder(true); setOrderStartError("");
+    try {
+      const { data } = await api.post("/auth/admin/customer-context");
+      localStorage.setItem("authToken", data.access_token);
+      localStorage.setItem("refreshToken", data.refresh_token);
+      localStorage.setItem("userData", JSON.stringify(data.user));
+      navigate(data.user?.profile_completed && data.user?.onboarding_completed ? "/customer/search" : "/customer/onboarding");
+    } catch (error) {
+      setOrderStartError((error as { response?: { data?: { detail?: string } } }).response?.data?.detail || "Could not open the customer shop. Please try again.");
+    } finally {
+      setStartingOrder(false);
+    }
   };
 
   const select = (value: Section) => {
@@ -150,9 +167,9 @@ export default function AdminDashboard() {
       <div className="lg:pl-72">
         <header className="sticky top-0 z-[70] flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
           <div className="flex items-center gap-3"><button onClick={() => setDrawerOpen(true)} className="rounded-xl bg-slate-100 p-2.5 text-slate-700 lg:hidden" aria-label="Open navigation"><Menu size={20} /></button><div><p className="text-[10px] font-black uppercase tracking-[0.18em] text-green-600">PEPI</p><h1 className="text-sm font-black capitalize text-slate-900 sm:text-base">{visibleNav.find((item) => item.id === section)?.label}</h1></div></div>
-          <div className="relative flex items-center gap-2"><AdminNotificationBell onNavigate={(target) => select(target as Section)} sections={{ finance: "finance", orders: "orders", vendors: "vendors", riders: "riders", support: "support", attention: "attention" }} /><button onClick={logout} className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"><LogOut size={15} /><span className="hidden sm:inline">Log out</span></button></div>
+          <div className="relative flex items-center gap-2"><button onClick={() => void orderMeals()} disabled={startingOrder} className="flex items-center gap-2 rounded-xl bg-green-600 px-3 py-2 text-xs font-black text-white hover:bg-green-700 disabled:opacity-60"><Utensils size={15}/><span className="hidden sm:inline">{startingOrder ? "Opening shop" : "Order meals"}</span></button><AdminNotificationBell onNavigate={(target) => select(target as Section)} sections={{ finance: "finance", orders: "orders", vendors: "vendors", riders: "riders", support: "support", attention: "attention" }} /><button onClick={logout} className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"><LogOut size={15} /><span className="hidden sm:inline">Log out</span></button></div>
         </header>
-        <main className="mx-auto w-full max-w-[1500px] p-4 sm:p-6 lg:p-8">{content}</main>
+        <main className="mx-auto w-full max-w-[1500px] p-4 sm:p-6 lg:p-8">{orderStartError && <div role="alert" className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{orderStartError}</div>}{content}</main>
       </div>
     </div>
   );

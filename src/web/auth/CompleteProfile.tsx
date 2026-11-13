@@ -44,7 +44,7 @@ export default function CompleteProfile({ role }: { role: PartnerRole }) {
   const returnTo = requestedReturn?.startsWith(`/${role}/`) && requestedReturn !== `/${role}/onboarding` && !requestedReturn.startsWith("//") ? requestedReturn : roleHome(role);
   const draftKey = `pepi-${role}-onboarding-${user?.id || "unknown"}`;
   const savedDraft = useMemo(() => readDraft(draftKey), [draftKey]);
-  const total = role === "vendor" ? 4 : 3;
+  const total = 4;
   const [step, setStep] = useState(Math.min(savedDraft?.step || 1, total));
   const [error, setError] = useState("");
   const [notice, setNotice] = useState(savedDraft ? "Your saved progress has been restored." : "");
@@ -78,14 +78,13 @@ export default function CompleteProfile({ role }: { role: PartnerRole }) {
   useEffect(() => { if (!form.country) return; api.get(`/location/countries/${encodeURIComponent(form.country)}/states`).then(({ data }) => setStates(data || [])).catch(() => setStates([])); }, [form.country]);
   useEffect(() => { if (!form.country || !form.state) return; api.get(`/location/countries/${encodeURIComponent(form.country)}/states/${encodeURIComponent(form.state)}/cities`).then(({ data }) => setCities(data || [])).catch(() => setCities([])); }, [form.country, form.state]);
   useEffect(() => {
-    if (role !== "vendor") return;
     api.get<{ status?: boolean; data?: Bank[] }>("/system/banks").then(({ data }) => {
       const unique = Array.from(new Map((data.data || []).map(bank => [bank.code, bank])).values());
       setBanks(unique);
     }).catch(() => setNotice("The bank list could not be loaded. Please refresh and try again."));
   }, [role]);
   useEffect(() => {
-    if (role !== "vendor" || form.account_number?.length !== 10 || !form.bank_code) return;
+    if (form.account_number?.length !== 10 || !form.bank_code) return;
     let active = true;
     const timer = window.setTimeout(async () => {
       setResolvingAccount(true);
@@ -139,8 +138,8 @@ export default function CompleteProfile({ role }: { role: PartnerRole }) {
   function advance(event: FormEvent) { event.preventDefault(); setError(""); setNotice(""); setStep(current => Math.min(current + 1, total)); window.scrollTo({ top: 0, behavior: "smooth" }); }
   function back() { setError(""); setStep(current => Math.max(current - 1, 1)); }
 
-  async function submit(event: FormEvent) {
-    event.preventDefault();
+  async function submit(event?: FormEvent, skipBank = false) {
+    event?.preventDefault();
     if (!user) return;
     setBusy(true); setError("");
     try {
@@ -162,6 +161,11 @@ export default function CompleteProfile({ role }: { role: PartnerRole }) {
           next_of_kin_name: form.next_of_kin_name, next_of_kin_phone: form.next_of_kin_phone,
           previous_work: form.previous_work || null, work_duration: form.work_duration || null, referral_code: form.referral_code || null, delivery_range: Number(form.delivery_range || 10),
         });
+        if (!skipBank) {
+          await api.post("/riders/bank-info", {
+            bank_name: form.bank_name, bank_code: form.bank_code, account_number: form.account_number, account_name: form.account_name,
+          });
+        }
       }
       await refreshRoleSession();
       const { data: current } = await api.get<UserData>("/auth/me");
@@ -178,7 +182,7 @@ export default function CompleteProfile({ role }: { role: PartnerRole }) {
 
   const titles = role === "vendor"
     ? ["Tell us about your kitchen", "Where can customers find you?", "Set your operating details", "Add your settlement account"]
-    : ["Tell us how you deliver", "Where are you based?", "Complete your rider profile"];
+    : ["Tell us how you deliver", "Where are you based?", "Complete your rider profile", "Add your payout account"];
   const actions = (content: ReactNode, final = false) => <form className="auth-form" onSubmit={final ? submit : advance}>{content}<div className="auth-actions">{step > 1 && <button type="button" className="auth-secondary" onClick={back}><ArrowLeft/> Back</button>}<button className="auth-primary" disabled={busy || loading}>{busy ? "Saving details..." : final ? "Finish setup" : "Continue"}<ArrowRight/></button></div></form>;
 
   return <AuthShell title={titles[step - 1]} copy="Complete your details once, then continue straight to your workspace." step={step} total={total}>
@@ -190,6 +194,7 @@ export default function CompleteProfile({ role }: { role: PartnerRole }) {
     {role === "vendor" && step === 4 && actions(<><SelectField label="Bank name" value={form.bank_code || ""} options={banks.map(bank => ({ label: bank.name, value: bank.code }))} onChange={code => { const bank = banks.find(item => item.code === code); setForm(current => ({ ...current, bank_code: code, bank_name: bank?.name || "", account_name: "" })); }} placeholder={banks.length ? "Select bank" : "Loading banks..."} disabled={!banks.length}/><div className="auth-grid"><AuthField label="Account number"><div className="auth-control"><input inputMode="numeric" pattern="[0-9]{10}" maxLength={10} value={form.account_number || ""} onChange={event => set("account_number")(event.target.value.replace(/\D/g, ""))} required placeholder="10-digit account number"/></div></AuthField><AuthField label="Account name"><div className="auth-control"><input value={resolvingAccount ? "Verifying account..." : form.account_name || ""} readOnly required placeholder="Verified automatically"/></div></AuthField></div><label className="auth-check"><input type="checkbox" required/><span>I confirm these business and settlement details are correct.</span></label></>, true)}
     {role === "rider" && step === 1 && actions(<><div className="auth-grid">{field("firstname", "First name")}{field("lastname", "Last name")}</div>{field("phone", "Phone number", "tel")}<div className="auth-grid"><SelectField label="Gender" value={form.gender || ""} options={genders.map(value => ({ label: value, value }))} onChange={set("gender")} placeholder="Select gender"/><SelectField label="Vehicle type" value={form.vehicle_type || ""} options={vehicleTypes.map(value => ({ label: value, value }))} onChange={set("vehicle_type")} placeholder="Select vehicle type"/></div><div className="auth-grid">{field("vehicle_brand", "Vehicle brand")}{field("plate_number", "Plate number")}</div></>)}
     {role === "rider" && step === 2 && actions(<><SearchSelect label="Country" value={form.country || ""} options={countries} onChange={value => setForm(current => ({ ...current, country: value, state: "", city: "" }))} placeholder="Search countries"/><div className="auth-grid"><SelectField label="State" value={form.state || ""} options={placeOptions(states)} onChange={value => setForm(current => ({ ...current, state: value, city: "" }))} placeholder={states.length ? "Select state" : "Loading states..."} disabled={!states.length}/><SelectField label="City" value={form.city || ""} options={placeOptions(cities)} onChange={set("city")} placeholder={!form.state ? "Select a state first" : cities.length ? "Select city" : "Loading cities..."} disabled={!form.state || !cities.length}/></div>{field("address", "Home address")} {field("zip", "Postcode", "text", false)}</>)}
-    {role === "rider" && step === 3 && actions(<><div className="auth-grid">{field("next_of_kin_name", "Next of kin name")}{field("next_of_kin_phone", "Next of kin phone", "tel")}</div><div className="auth-grid">{field("previous_work", "Previous delivery work", "text", false)}{field("work_duration", "Work duration", "text", false)}</div><div className="auth-grid"><SelectField label="Delivery range" value={form.delivery_range || "10"} options={deliveryRanges.map(value => ({ label: `${value} km`, value: String(value) }))} onChange={set("delivery_range")} placeholder="Select delivery range"/>{field("referral_code", "Referral code", "text", false)}</div><label className="auth-check"><input type="checkbox" required/><span>I confirm these rider details are correct.</span></label></>, true)}
+    {role === "rider" && step === 3 && actions(<><div className="auth-grid">{field("next_of_kin_name", "Next of kin name")}{field("next_of_kin_phone", "Next of kin phone", "tel")}</div><div className="auth-grid">{field("previous_work", "Previous delivery work", "text", false)}{field("work_duration", "Work duration", "text", false)}</div><div className="auth-grid"><SelectField label="Delivery range" value={form.delivery_range || "10"} options={deliveryRanges.map(value => ({ label: `${value} km`, value: String(value) }))} onChange={set("delivery_range")} placeholder="Select delivery range"/>{field("referral_code", "Referral code", "text", false)}</div><label className="auth-check"><input type="checkbox" required/><span>I confirm these rider details are correct.</span></label></>)}
+    {role === "rider" && step === 4 && <form className="auth-form" onSubmit={submit}><p className="auth-notice">Add a verified bank account for payouts. You can skip this step and add it later before your first withdrawal.</p><SelectField label="Bank name" value={form.bank_code || ""} options={banks.map(bank => ({ label: bank.name, value: bank.code }))} onChange={code => { const bank = banks.find(item => item.code === code); setForm(current => ({ ...current, bank_code: code, bank_name: bank?.name || "", account_name: "" })); }} placeholder={banks.length ? "Select bank" : "Loading banks..."} disabled={!banks.length}/><div className="auth-grid"><AuthField label="Account number"><div className="auth-control"><input inputMode="numeric" pattern="[0-9]{10}" maxLength={10} value={form.account_number || ""} onChange={event => set("account_number")(event.target.value.replace(/\D/g, ""))} required placeholder="10-digit account number"/></div></AuthField><AuthField label="Account name"><div className="auth-control"><input value={resolvingAccount ? "Verifying account..." : form.account_name || ""} readOnly required placeholder="Verified automatically"/></div></AuthField></div><label className="auth-check"><input type="checkbox" required/><span>I confirm these payout details are correct.</span></label><div className="auth-actions"><button type="button" className="auth-secondary" onClick={back}><ArrowLeft/> Back</button><button type="button" className="auth-secondary" disabled={busy} onClick={() => void submit(undefined, true)}>Skip for now</button><button className="auth-primary" disabled={busy || loading || resolvingAccount || !form.account_name}>{busy ? "Saving details..." : "Finish setup"}<ArrowRight/></button></div></form>}
   </AuthShell>;
 }

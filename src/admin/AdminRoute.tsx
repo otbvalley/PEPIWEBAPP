@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { decodeJwtToken } from "../services/backendAuthService";
-import { clearAdminSession, confirmAdminSession } from "../services/api";
+import { clearAdminSession, confirmAdminSession, getAdminAccessToken, migrateLegacyAdminSession } from "../services/api";
 
 export default function AdminRoute({ children }: { children: ReactNode }) {
   const location = useLocation();
@@ -12,15 +12,16 @@ export default function AdminRoute({ children }: { children: ReactNode }) {
     let active = true;
 
     const confirmSession = async () => {
+      migrateLegacyAdminSession();
       try {
-        if (localStorage.getItem("refreshToken")) {
+        if (localStorage.getItem("adminRefreshToken")) {
           await confirmAdminSession();
         }
       } catch {
         // A network failure may still leave a valid access token to use.
       }
 
-      const token = localStorage.getItem("authToken");
+      const token = getAdminAccessToken();
       const payload = token ? decodeJwtToken(token) : null;
       const expired = Boolean(payload?.exp && payload.exp * 1000 <= Date.now());
       const valid = Boolean(token && (payload?.role === "admin" || payload?.admin_role) && !expired);

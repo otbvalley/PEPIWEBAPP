@@ -43,7 +43,7 @@ export default function AdminAccounts() {
   const [form, setForm] = useState(empty);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const currentId = JSON.parse(localStorage.getItem("userData") || "{}").id;
+  const currentId = JSON.parse(localStorage.getItem("adminUserData") || "{}").id;
 
   const load = useCallback(async () => {
     setLoading(true);

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Bike, Check, ChevronLeft, Clock3, MapPin, MessageCircle, Phone, Store } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
-import api, { getAdminWebSocketUrl } from "../../services/api";
+import api, { getAdminWebSocketUrl, getApiErrorMessage } from "../../services/api";
 import "./OrderFlowExperience.css";
 
 type Order = {
@@ -46,7 +46,7 @@ export default function CustomerOrders() {
       const { data } = await api.get<Order[]>("/orders/");
       setOrders(data);
       setSelected(current => current ? data.find(order => order.id === current.id) || current : null);
-    } catch { setError("Could not load orders. Please try again."); }
+    } catch (error) { setError(getApiErrorMessage(error, "Your orders could not be loaded. Try again.")); }
     finally { setLoading(false); }
   }, []);
   const openOrder = useCallback(async (order: Order) => { setTimeline([]); setSelected(order); setParams({ orderId: order.id }); try { const { data } = await api.get<Order>(`/orders/${order.id}`); setSelected(data); } catch { /* list data remains available */ } }, [setParams]);
@@ -62,7 +62,7 @@ export default function CustomerOrders() {
     let active = true;
     const read = () => api.get<Update[]>(`/orders/${selectedId}/tracking`)
       .then(({ data }) => { if (active) { setTimeline(data); setTrackingError(""); } })
-      .catch(() => { if (active) setTrackingError("Could not load tracking updates."); });
+      .catch(error => { if (active) setTrackingError(getApiErrorMessage(error, "Tracking updates are temporarily unavailable. Refresh the order to try again.")); });
     void read();
     const interval = window.setInterval(() => void read(), 30000);
     return () => { active = false; window.clearInterval(interval); };
@@ -70,7 +70,7 @@ export default function CustomerOrders() {
   const visible = orders.filter(order => tab === "active" ? activeStatuses.has(order.status) : tab === "completed" ? order.status === "completed" : ["cancelled", "failed"].includes(order.status));
   const money = (value: number) => `₦${Number(value || 0).toLocaleString("en-NG")}`;
   const date = (value: string) => new Date(value).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" });
-  const submitReview = async () => { if (!selected || !rating) return; setReviewing(true); setReviewMessage(""); try { await api.post("/vendors/reviews", { vendor_id: selected.vendor_id, order_id: selected.id, rating, comment: review.trim() || null }); setSelected(current => current ? { ...current, rating } : current); setReviewMessage("Thank you for your review."); } catch (err) { setReviewMessage((err as { response?: { data?: { detail?: string } } }).response?.data?.detail || "Your review could not be submitted."); } finally { setReviewing(false); } };
+  const submitReview = async () => { if (!selected || !rating) return; setReviewing(true); setReviewMessage(""); try { await api.post("/vendors/reviews", { vendor_id: selected.vendor_id, order_id: selected.id, rating, comment: review.trim() || null }); setSelected(current => current ? { ...current, rating } : current); setReviewMessage("Thank you for your review."); } catch (err) { setReviewMessage(getApiErrorMessage(err, "Your review was not submitted. Check your connection and try again.")); } finally { setReviewing(false); } };
   if (selected) {
     const currentStep = progressSteps.findIndex(([status]) => status === selected.status);
     const orderCode = selected.customer_order_code || selected.id.slice(0, 5).toUpperCase();

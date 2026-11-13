@@ -11,13 +11,14 @@ import { CustomerHome, CustomerSearch, CustomerKitchen, CustomerMealDetail, Vend
 import { CustomerCart, CustomerCheckout, CustomerPaymentVerify } from "./web/customer/CartFlow";
 import CustomerAddresses from "./web/customer/Addresses";
 import CustomerOrders from "./web/customer/Orders";
-import { CustomerFaq, CustomerFavorites, CustomerOffers, CustomerOnboarding, CustomerOrderRoute, CustomerPassword, CustomerPreferences, CustomerWallet, WalletVerify } from "./web/customer/CustomerAccountPages";
+import { CustomerDeliveryRequests, CustomerFaq, CustomerFavorites, CustomerOffers, CustomerOnboarding, CustomerOrderRoute, CustomerPassword, CustomerPreferences, CustomerWallet, PublicDeliveryTracking, WalletVerify } from "./web/customer/CustomerAccountPages";
 import EarningsPage from "./web/pages/EarningsPage";
 import { ProfilePage, SessionsPage, NotificationsPage, SupportPage, ReviewsPage, ActivityPage, SettingsPage } from "./web/pages/RoleAccount";
 import RoleChat from "./web/pages/RoleChat";
 import { VendorOrders, VendorMenu, RiderDeliveries, RiderOrderDetail } from "./web/pages/RoleOperations";
 import { VendorOrderDetail, VendorPasswordSettings, VendorPaymentSettings, VendorSettings } from "./web/pages/VendorPages";
 import RiderMapPage from "./web/pages/RiderMapPage";
+import RiderPaymentSettings from "./web/pages/RiderPaymentSettings";
 import AdminRoute from "./admin/AdminRoute";
 import About from "./pages/About";
 import Careers from "./pages/Careers";
@@ -43,6 +44,7 @@ export default function AppRoutes() {
     <Route path="/rider-login" element={<Navigate to="/signin?role=rider" replace />} />
     <Route path="/vendor-signup" element={<Navigate to="/signup?role=vendor" replace />} />
     <Route path="/rider-registration" element={<Navigate to="/signup?role=rider" replace />} />
+    <Route path="/track/delivery/:token" element={<PublicDeliveryTracking />} />
 
     <Route path="/customer" element={<CustomerBrowseAccess />}>
       <Route path="search" element={<CustomerSearch />} />
@@ -60,6 +62,7 @@ export default function AppRoutes() {
       <Route path="wallet/verify" element={<WalletVerify />} />
       <Route path="orders" element={<CustomerOrders />} />
       <Route path="orders/:id" element={<CustomerOrderRoute />} />
+      <Route path="delivery-requests" element={<CustomerDeliveryRequests />} />
       <Route path="messages" element={<RoleChat />} />
       <Route path="notifications" element={<NotificationsPage role="customer" />} />
       <Route path="profile" element={<ProfilePage role="customer" />} />
@@ -104,6 +107,7 @@ export default function AppRoutes() {
       <Route path="deliveries/:id" element={<RiderOrderDetail />} />
       <Route path="map" element={<RiderMapPage />} />
       <Route path="earnings" element={<EarningsPage role="rider" />} />
+      <Route path="payment-settings" element={<RiderPaymentSettings />} />
       <Route path="chat" element={<RoleChat />} />
       <Route path="notifications" element={<NotificationsPage role="rider" />} />
       <Route path="profile" element={<ProfilePage role="rider" />} />

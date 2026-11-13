@@ -4,6 +4,7 @@ import logo from "../../assets/Logo SVG 1.png";
 import { useToast } from "../../context/ToastContext";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../services/api";
+import { clearRoleSession, saveAdminSession } from "../../services/api";
 import { decodeJwtToken } from "../../services/backendAuthService";
 
 export default function AdminLogin() {
@@ -21,9 +22,8 @@ export default function AdminLogin() {
     const token = data.access_token;
     const payload = decodeJwtToken(token);
     if (!payload || (payload.role !== "admin" && !payload.admin_role)) throw new Error("This account does not have admin access.");
-    localStorage.setItem("authToken", token);
-    if (data.refresh_token) localStorage.setItem("refreshToken", data.refresh_token);
-    localStorage.setItem("userData", JSON.stringify({ ...data.user, permissions: payload.permissions || [], admin_role: payload.admin_role }));
+    clearRoleSession();
+    saveAdminSession(token, data.refresh_token, { ...data.user, permissions: payload.permissions || [], admin_role: payload.admin_role });
     toast.success("Welcome back, Admin!", "Login Successful");
     navigate("/admin-dashboard");
   };
